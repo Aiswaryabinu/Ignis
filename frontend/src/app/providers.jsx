@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import apiClient from '../lib/apiClient';
 
 const AuthContext = createContext(null);
 const ThemeContext = createContext(null);
@@ -16,19 +17,42 @@ const queryClient = new QueryClient({
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState({
-    id: 'demo-user',
-    role: 'Admin',
-    name: 'Demo Admin',
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(Boolean(localStorage.getItem('auth_token')));
+
+  useEffect(() => {
+    if (!localStorage.getItem('auth_token')) return;
+    apiClient.get('/auth/me')
+      .then(({ data }) => setUser(data))
+      .catch(() => {
+        localStorage.removeItem('auth_token');
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const value = useMemo(
     () => ({
       user,
-      login: (nextUser) => setUser(nextUser),
-      logout: () => setUser(null),
+      loading,
+      login: async (email, password) => {
+        const { data } = await apiClient.post('/auth/login', { email, password });
+        localStorage.setItem('auth_token', data.access_token);
+        setUser(data.user);
+        return data.user;
+      },
+      register: async (details) => {
+        const { data } = await apiClient.post('/auth/register', details);
+        localStorage.setItem('auth_token', data.access_token);
+        setUser(data.user);
+        return data.user;
+      },
+      logout: () => {
+        localStorage.removeItem('auth_token');
+        setUser(null);
+      },
     }),
-    [user],
+    [user, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

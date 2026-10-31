@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
@@ -12,7 +13,9 @@ import { SubscriptionsPage } from '../features/subscriptions/pages/Subscriptions
 import { useAuth } from './providers.jsx';
 
 function RequireRole({ allowedRoles, children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) return <div className="auth-page">Loading account…</div>;
 
   if (!user) {
     return <Navigate to="/auth/signin" replace />;
@@ -39,6 +42,9 @@ function DashboardPage() {
 }
 
 function SignInPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
   return (
     <div className="auth-page">
       <div className="auth-panel">
@@ -52,15 +58,25 @@ function SignInPage() {
           <h1>Sign in</h1>
         </div>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={async (event) => {
+          event.preventDefault();
+          setError('');
+          const form = new FormData(event.currentTarget);
+          try {
+            await login(form.get('email'), form.get('password'));
+            navigate('/dashboard', { replace: true });
+          } catch (err) {
+            setError(err.response?.data?.detail || 'Could not sign in. Check your connection and try again.');
+          }
+        }}>
           <label className="field-group">
             <span>Email</span>
-            <input type="email" defaultValue="admin@brightloop.io" />
+            <input name="email" type="email" autoComplete="email" required />
           </label>
 
           <label className="field-group">
             <span>Password</span>
-            <input type="password" defaultValue="password123" />
+            <input name="password" type="password" autoComplete="current-password" required />
           </label>
 
           <div className="form-row">
@@ -72,6 +88,7 @@ function SignInPage() {
           </div>
 
           <button type="submit" className="primary-button">Sign in</button>
+          {error && <p role="alert">{error}</p>}
 
           <p className="auth-link-row">
             Don’t have an account? <a href="/auth/signup">Create account</a>
@@ -83,6 +100,9 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
   return (
     <div className="auth-page">
       <div className="auth-panel">
@@ -96,28 +116,44 @@ function SignUpPage() {
           <h1>Sign up</h1>
         </div>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={async (event) => {
+          event.preventDefault();
+          setError('');
+          const form = new FormData(event.currentTarget);
+          const password = form.get('password');
+          if (password !== form.get('confirm_password')) {
+            setError('Passwords do not match.');
+            return;
+          }
+          try {
+            await register({ full_name: form.get('full_name'), email: form.get('email'), password });
+            navigate('/dashboard', { replace: true });
+          } catch (err) {
+            setError(err.response?.data?.detail || 'Could not create account. Check your connection and try again.');
+          }
+        }}>
           <label className="field-group">
             <span>Full name</span>
-            <input type="text" defaultValue="Aisha Khan" />
+            <input name="full_name" type="text" autoComplete="name" required />
           </label>
 
           <label className="field-group">
             <span>Email</span>
-            <input type="email" defaultValue="aisha@brightloop.io" />
+            <input name="email" type="email" autoComplete="email" required />
           </label>
 
           <label className="field-group">
             <span>Password</span>
-            <input type="password" defaultValue="password123" />
+            <input name="password" type="password" autoComplete="new-password" required />
           </label>
 
           <label className="field-group">
             <span>Confirm password</span>
-            <input type="password" defaultValue="password123" />
+            <input name="confirm_password" type="password" autoComplete="new-password" required />
           </label>
 
           <button type="submit" className="primary-button">Create account</button>
+          {error && <p role="alert">{error}</p>}
 
           <p className="auth-link-row">
             Already have an account? <a href="/auth/signin">Sign in</a>
