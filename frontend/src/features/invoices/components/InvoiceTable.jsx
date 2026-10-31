@@ -11,7 +11,7 @@ const statusClass = {
   Paid: 'success',
 };
 
-export function InvoiceTable({ rows = [] }) {
+export function InvoiceTable({ rows = [], onSelect }) {
   return (
     <table className="data-table invoice-table">
       <thead>
@@ -28,7 +28,11 @@ export function InvoiceTable({ rows = [] }) {
       <tbody>
         {rows.map((row) => (
           <tr key={row.id}>
-            <td className="invoice-number">{row.invoiceNumber}</td>
+            <td>
+              <button className="table-link" type="button" onClick={() => onSelect?.(row)}>
+                {row.invoiceNumber}
+              </button>
+            </td>
             <td>{row.customer}</td>
             <td>{row.subscription}</td>
             <td>{row.date}</td>
