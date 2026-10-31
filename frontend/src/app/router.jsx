@@ -26,7 +26,7 @@ function RequireRole({ allowedRoles, children }) {
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/customers" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

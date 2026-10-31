@@ -24,7 +24,7 @@ export function AppShell({
   children,
   activeNav = 'customers',
 }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navItems = [
     { label: 'Customers', href: '/customers', icon: Users },
     { label: 'Products', href: '/products', icon: Boxes },
@@ -38,6 +38,9 @@ export function AppShell({
     { label: 'Overview', href: '/dashboard', icon: Grid2x2 },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
+  const visibleNavItems = user?.role === 'Customer'
+    ? navItems.filter((item) => item.label === 'Overview')
+    : navItems;
 
   return (
     <div className="app-shell">
@@ -50,7 +53,7 @@ export function AppShell({
         <div className="nav-section">
           <div className="nav-label">WORKSPACE</div>
           <nav className="sidebar-nav">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const selected = item.label.toLowerCase() === activeNav.toLowerCase();
               return (
