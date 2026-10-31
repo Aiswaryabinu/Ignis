@@ -1,0 +1,76 @@
+
+# ==============================
+# Environment variables & secrets
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Python / Backend
+# ==============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==============================
+# Node.js / Frontend
+# ==============================
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# ==============================
+# Database / Local data
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+postgres_data/
+database_data/
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
+# IDE / Editors
+# ==============================
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ==============================
+# Operating system
+# ==============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.bak
+*.swp
+*.orig
