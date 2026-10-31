@@ -1,259 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import apiClient from '../../../lib/apiClient';
 
-const quotations = [
-  {
-    id: 1,
-    template: 'Retail Starter Pack',
-    plan: 'Starter Monthly',
-    lines: 'CloudDesk Pro × 5',
-    validFor: '30 days',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    template: 'Enterprise Analytics',
-    plan: 'Scale Annual',
-    lines: 'Analytics Suite × 10',
-    validFor: '15 days',
-    status: 'Active',
-  },
-  {
-    id: 3,
-    template: 'Security Add-on',
-    plan: 'Secure Weekly',
-    lines: 'SecureVault × 2',
-    validFor: '7 days',
-    status: 'Draft',
-  },
-];
-
-function getInitials(name) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-}
+const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
 
 export function QuotationsPage() {
-  const [drawerMode, setDrawerMode] = useState(null);
-  const [selectedQuote, setSelectedQuote] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: quotes = [], isLoading, error } = useQuery({ queryKey: ['quotations'], queryFn: async () => (await apiClient.get('/quotations')).data });
+  const { data: customers = [] } = useQuery({ queryKey: ['customers'], queryFn: async () => (await apiClient.get('/customers')).data });
+  const { data: plans = [] } = useQuery({ queryKey: ['plans'], queryFn: async () => (await apiClient.get('/plans')).data });
+  const createQuote = useMutation({
+    mutationFn: async (payload) => (await apiClient.post('/quotations', payload)).data,
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['quotations'] }); setCreating(false); },
+  });
+  const action = useMutation({
+    mutationFn: async ({ id, operation }) => (await apiClient.post(`/quotations/${id}/${operation}`)).data,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['quotations'] }),
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] }),
+      ]);
+    },
+  });
 
-  const isOpen = drawerMode !== null;
-
-  useEffect(() => {
-    const mainPanel = document.querySelector('.main-panel');
-    if (!mainPanel) return;
-
-    if (isOpen) {
-      mainPanel.classList.add('drawer-push');
-    } else {
-      mainPanel.classList.remove('drawer-push');
-    }
-
-    return () => mainPanel.classList.remove('drawer-push');
-  }, [isOpen]);
-
-  function openCreate() {
-    setSelectedQuote(null);
-    setDrawerMode('create');
+  function submitQuote(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    createQuote.mutate({ customer_id: form.get('customer_id'), plan_id: form.get('plan_id'), quantity: Number(form.get('quantity')), valid_days: Number(form.get('valid_days')) });
   }
 
-  function openDetail(quote) {
-    setSelectedQuote(quote);
-    setDrawerMode('detail');
-  }
-
-  function closeDrawer() {
-    setDrawerMode(null);
-    setSelectedQuote(null);
-  }
-
-  return (
-    <AppShell
-      title="Quotations"
-      description="Start offers from a template with plan and product lines ready."
-      breadcrumb="Brightloop / Quotations"
-      activeNav="Quotations"
-      primaryAction={
-        <button className="primary-action" type="button" onClick={openCreate}>
-          + New template
-        </button>
-      }
-      secondaryAction={<button className="secondary-action">Export</button>}
-    >
-      <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
-        {drawerMode === 'create' && (
-          <>
-            <div className="drawer-header">
-              <div className="drawer-title-group">
-                <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">New template</h2>
-              </div>
-              <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            <div className="drawer-divider" />
-            <p className="drawer-subtitle">Create a reusable quotation template for your sales team.</p>
-
-            <form
-              className="drawer-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                closeDrawer();
-              }}
-            >
-              <label className="drawer-field">
-                <span className="drawer-field-label">Template name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Retail Starter Pack" />
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Plan</span>
-                <select className="drawer-input" defaultValue="Starter Monthly">
-                  <option>Starter Monthly</option>
-                  <option>Scale Annual</option>
-                  <option>Secure Weekly</option>
-                </select>
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Lines</span>
-                <input type="text" className="drawer-input" placeholder="CloudDesk Pro × 5" />
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Valid for</span>
-                <input type="text" className="drawer-input" placeholder="30 days" />
-              </label>
-
-              <div className="drawer-actions">
-                <button type="submit" className="drawer-save-btn">Save</button>
-                <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Cancel</button>
-              </div>
-            </form>
-          </>
-        )}
-
-        {drawerMode === 'detail' && selectedQuote && (
-          <>
-            <div className="drawer-detail-header">
-              <div className="drawer-detail-avatar">{getInitials(selectedQuote.template)}</div>
-              <div className="drawer-detail-title-group">
-                <span className="drawer-eyebrow">Template</span>
-                <h2 className="drawer-title">{selectedQuote.template}</h2>
-                <span className={`status-pill ${selectedQuote.status === 'Active' ? 'success' : 'warning'}`} style={{ marginTop: '6px', display: 'inline-flex' }}>
-                  <span className="dot" />
-                  {selectedQuote.status}
-                </span>
-              </div>
-              <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            <div className="drawer-divider" />
-
-            <div className="drawer-stats-row">
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.plan}</span>
-                <span className="drawer-stat-label">Plan</span>
-              </div>
-              <div className="drawer-stat-divider" />
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.validFor}</span>
-                <span className="drawer-stat-label">Valid</span>
-              </div>
-              <div className="drawer-stat-divider" />
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.lines}</span>
-                <span className="drawer-stat-label">Lines</span>
-              </div>
-            </div>
-
-            <div className="drawer-divider" />
-
-            <div className="drawer-detail-body">
-              <div className="drawer-detail-section-label">Template details</div>
-
-              <div className="drawer-detail-grid">
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Template</span>
-                  <span className="drawer-detail-val">{selectedQuote.template}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Plan</span>
-                  <span className="drawer-detail-val">{selectedQuote.plan}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Lines</span>
-                  <span className="drawer-detail-val">{selectedQuote.lines}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Valid for</span>
-                  <span className="drawer-detail-val">{selectedQuote.validFor}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit template</button>
-              <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
-            </div>
-          </>
-        )}
-      </aside>
-
-      <div className="customers-layout">
-        <div className="customers-list-panel">
-          <div className="table-toolbar">
-            <div className="search-box">Search quotations...</div>
-            <div className="filter-select">All statuses ⌄</div>
-          </div>
-
-          <div className="data-card">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Template</th>
-                  <th>Plan</th>
-                  <th>Lines</th>
-                  <th>Valid for</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotations.map((quote) => (
-                  <tr
-                    key={quote.id}
-                    className={`customer-row ${selectedQuote?.id === quote.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}
-                    onClick={() => openDetail(quote)}
-                  >
-                    <td className="customer-name">{quote.template}</td>
-                    <td>{quote.plan}</td>
-                    <td>{quote.lines}</td>
-                    <td>{quote.validFor}</td>
-                    <td>
-                      <span className={`status-pill ${quote.status === 'Active' ? 'success' : 'warning'}`}>
-                        <span className="dot" />
-                        {quote.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="table-footer">Showing 3 of 3 records</div>
-          </div>
-        </div>
-      </div>
-    </AppShell>
-  );
+  return <AppShell title="Quotations" description="Create offers, send them, and convert accepted quotations into subscriptions." breadcrumb="Brightloop / Quotations" activeNav="Quotations"
+    primaryAction={<button className="primary-action" type="button" onClick={() => setCreating(true)}>+ New quotation</button>}>
+    {creating && <div className="data-card" style={{ padding: 20, marginBottom: 20 }}><form className="drawer-form" onSubmit={submitQuote}>
+      <label className="drawer-field"><span className="drawer-field-label">Customer</span><select name="customer_id" className="drawer-input" required defaultValue="">{customers.length === 0 && <option value="">No customers available</option>}<option value="" disabled>Select a customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>
+      <label className="drawer-field"><span className="drawer-field-label">Plan</span><select name="plan_id" className="drawer-input" required defaultValue="">{plans.length === 0 && <option value="">No plans available</option>}<option value="" disabled>Select a plan</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {currency.format(plan.price)} / {plan.billing}</option>)}</select></label>
+      <label className="drawer-field"><span className="drawer-field-label">Quantity</span><input name="quantity" type="number" min="1" defaultValue="1" className="drawer-input" required /></label>
+      <label className="drawer-field"><span className="drawer-field-label">Valid for (days)</span><input name="valid_days" type="number" min="1" max="365" defaultValue="30" className="drawer-input" required /></label>
+      {createQuote.error && <p role="alert">{createQuote.error.response?.data?.detail || 'Could not create quotation.'}</p>}
+      <div className="drawer-actions"><button className="drawer-save-btn" disabled={createQuote.isPending || customers.length === 0 || plans.length === 0}>{createQuote.isPending ? 'Creating…' : 'Create quotation'}</button><button className="drawer-cancel-btn" type="button" onClick={() => setCreating(false)}>Cancel</button></div>
+    </form></div>}
+    <div className="data-card"><table className="data-table"><thead><tr><th>Quotation</th><th>Customer</th><th>Plan</th><th>Items</th><th>Valid until</th><th>Total</th><th>Status / Actions</th></tr></thead><tbody>
+      {isLoading && <tr><td colSpan="7">Loading quotations…</td></tr>}{error && <tr><td colSpan="7" role="alert">{error.response?.data?.detail || 'Could not load quotations.'}</td></tr>}
+      {!isLoading && !error && quotes.map((quote) => <tr key={quote.id}>
+        <td className="customer-name">{quote.number}</td><td>{quote.customer}</td><td>{quote.plan}</td><td>{quote.lines}</td><td>{quote.valid_until}</td><td>{currency.format(quote.grand_total)}</td>
+        <td><span className={`status-pill ${quote.status === 'Accepted' ? 'success' : quote.status === 'Draft' ? 'warning' : 'info'}`}><span className="dot" />{quote.status}</span>
+          {quote.status === 'Draft' && <button type="button" className="secondary-action" disabled={action.isPending} onClick={() => action.mutate({ id: quote.id, operation: 'send' })}>Send</button>}
+          {quote.status === 'Sent' && <button type="button" className="secondary-action" disabled={action.isPending} onClick={() => action.mutate({ id: quote.id, operation: 'accept' })}>Accept & create subscription</button>}
+        </td>
+      </tr>)}
+      {!isLoading && !error && quotes.length === 0 && <tr><td colSpan="7">No quotations yet.</td></tr>}
+    </tbody></table><div className="table-footer">{quotes.length} quotations</div></div>
+    {action.error && <p role="alert">{action.error.response?.data?.detail || 'Quotation action failed.'}</p>}
+  </AppShell>;
 }
