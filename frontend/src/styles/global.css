@@ -539,6 +539,7 @@ button, input, select {
   text-align: left;
   color: #1f3d4f;
   font-size: 0.96rem;
+  white-space: nowrap;
 }
 
 .data-table th {
