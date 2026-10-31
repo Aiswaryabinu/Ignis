@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
 const plans = [
   { name: 'Scale Annual', billed: '₹5,09,760', collected: '₹0', outstanding: '₹5,09,760' },
@@ -12,9 +13,10 @@ export function ReportsPage() {
   const [period, setPeriod] = useState('This month');
   const [plan, setPlan] = useState('All plans');
   const visiblePlans = useMemo(() => plan === 'All plans' ? plans : plans.filter((item) => item.name === plan), [plan]);
+  const exportReport = () => downloadCsv('revenue-report.csv', visiblePlans);
 
   return (
-    <AppShell title="Reports" description="Revenue, payments and overdue invoices." breadcrumb="Brightloop / Reports" activeNav="reports" secondaryAction={<button className="secondary-action" type="button">Export</button>}>
+    <AppShell title="Reports" description="Revenue, payments and overdue invoices." breadcrumb="Brightloop / Reports" activeNav="reports" secondaryAction={<button className="secondary-action" type="button" onClick={exportReport}>Export</button>}>
       <div className="report-toolbar">
         <select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="Report period"><option>This month</option><option>Last 3 months</option><option>This year</option></select>
         <select value={plan} onChange={(event) => setPlan(event.target.value)} aria-label="Filter by plan"><option>All plans</option><option>Business Monthly</option><option>Scale Annual</option><option>Secure Weekly</option><option>Starter Monthly</option></select>

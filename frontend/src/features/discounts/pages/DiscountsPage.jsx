@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const discounts = [
@@ -17,9 +18,10 @@ export function DiscountsPage() {
     discount.code.toLowerCase().includes(query.toLowerCase())
     && (status === 'All statuses' || discount.status === status)
   )), [query, status]);
+  const exportDiscounts = () => downloadCsv('discounts.csv', filteredDiscounts);
 
   return (
-    <AppShell title="Discounts" description="Rules applied automatically to the next invoice." breadcrumb="Brightloop / Discounts" activeNav="discounts" primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ Create discount</button>} secondaryAction={<button className="secondary-action" type="button">Export</button>}>
+    <AppShell title="Discounts" description="Rules applied automatically to the next invoice." breadcrumb="Brightloop / Discounts" activeNav="discounts" primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ Create discount</button>} secondaryAction={<button className="secondary-action" type="button" onClick={exportDiscounts}>Export</button>}>
       <div className="discount-toolbar">
         <input className="discount-search" type="search" placeholder="Search discounts..." aria-label="Search discounts" value={query} onChange={(event) => setQuery(event.target.value)} />
         <select className="discount-filter" aria-label="Filter discounts by status" value={status} onChange={(event) => setStatus(event.target.value)}>

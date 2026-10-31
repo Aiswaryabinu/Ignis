@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
+import { useSubscriptions } from '../api/useSubscriptions.js';
 
-const subscriptions = [
+const demoSubscriptions = [
   {
     id: 1,
     number: 'SUB-0001',
@@ -78,8 +80,11 @@ function getInitials(name) {
 }
 
 export function SubscriptionsPage() {
+  const { data = [], isLoading, isError } = useSubscriptions();
+  const subscriptions = data;
   const [drawerMode, setDrawerMode] = useState(null);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const exportSubscriptions = () => downloadCsv('subscriptions.csv', subscriptions);
 
   const isOpen = drawerMode !== null;
 
@@ -122,7 +127,7 @@ export function SubscriptionsPage() {
           + New subscription
         </button>
       }
-      secondaryAction={<button className="secondary-action">Export</button>}
+      secondaryAction={<button className="secondary-action" onClick={exportSubscriptions}>Export</button>}
     >
       <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
         {drawerMode === 'create' && (
@@ -130,7 +135,7 @@ export function SubscriptionsPage() {
             <div className="drawer-header">
               <div className="drawer-title-group">
                 <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">New subscription</h2>
+                <h2 className="drawer-title">{selectedSubscription ? 'Edit subscription' : 'New subscription'}</h2>
               </div>
               <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
                 ✕
@@ -144,12 +149,16 @@ export function SubscriptionsPage() {
               className="drawer-form"
               onSubmit={(e) => {
                 e.preventDefault();
+                const values = new FormData(e.currentTarget);
+                if (selectedSubscription) {
+                  setSelectedSubscription({ ...selectedSubscription, customer: values.get('customer'), plan: values.get('plan'), terms: values.get('terms') });
+                }
                 closeDrawer();
               }}
             >
               <label className="drawer-field">
                 <span className="drawer-field-label">Customer</span>
-                <select className="drawer-input" defaultValue="Northwind Traders">
+                <select name="customer" className="drawer-input" defaultValue={selectedSubscription?.customer || 'Northwind Traders'}>
                   <option>Northwind Traders</option>
                   <option>Kerala Foods Co.</option>
                   <option>Tidewater Logistics</option>
@@ -159,7 +168,7 @@ export function SubscriptionsPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Plan</span>
-                <select className="drawer-input" defaultValue="Business Monthly">
+                <select name="plan" className="drawer-input" defaultValue={selectedSubscription?.plan || 'Business Monthly'}>
                   <option>Business Monthly</option>
                   <option>Scale Annual</option>
                   <option>Starter Monthly</option>
@@ -174,7 +183,7 @@ export function SubscriptionsPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Payment terms</span>
-                <select className="drawer-input" defaultValue="Immediate">
+                <select name="terms" className="drawer-input" defaultValue={selectedSubscription?.terms || 'Immediate'}>
                   <option>Immediate</option>
                   <option>Net 15</option>
                   <option>Net 30</option>
@@ -263,7 +272,7 @@ export function SubscriptionsPage() {
             </div>
 
             <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit subscription</button>
+              <button type="button" className="drawer-save-btn" onClick={() => setDrawerMode('create')}>Edit subscription</button>
               <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
             </div>
           </>
@@ -292,7 +301,9 @@ export function SubscriptionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {subscriptions.map((item) => (
+                {isLoading && <tr><td colSpan="8">Loading subscriptions…</td></tr>}
+                {isError && <tr><td colSpan="8">Unable to load subscriptions. Check that the API is running.</td></tr>}
+                {!isLoading && !isError && subscriptions.map((item) => (
                   <tr
                     key={item.id}
                     className={`customer-row ${selectedSubscription?.id === item.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}
@@ -316,7 +327,7 @@ export function SubscriptionsPage() {
               </tbody>
             </table>
 
-            <div className="table-footer">Showing 5 of 5 records</div>
+            <div className="table-footer">Showing {subscriptions.length} records</div>
           </div>
         </div>
       </div>

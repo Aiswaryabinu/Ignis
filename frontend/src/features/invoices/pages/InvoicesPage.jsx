@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
 import { Drawer } from '../../../components/ui/Drawer.jsx';
 import { InvoiceTable } from '../components/InvoiceTable.jsx';
+import { useInvoices } from '../api/useInvoices.js';
+import apiClient from '../../../lib/apiClient.js';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
-const invoices = [
+const demoInvoices = [
   { id: 'INV-1052', invoiceNumber: 'INV-1052', customer: 'Kerala Foods Co.', subscription: 'SUB-0002', date: '31 Oct 2026', due: '15 Nov 2026', total: 254880, status: 'Draft' },
   { id: 'INV-1051', invoiceNumber: 'INV-1051', customer: 'Northwind Traders', subscription: 'SUB-0001', date: '31 Oct 2026', due: '15 Nov 2026', total: 109150, status: 'Draft' },
   { id: 'INV-1042', invoiceNumber: 'INV-1042', customer: 'Northwind Traders', subscription: 'SUB-0001', date: '01 Oct 2026', due: '16 Oct 2026', total: 109150, status: 'Overdue' },
@@ -21,10 +25,18 @@ const currency = new Intl.NumberFormat('en-IN', {
 });
 
 export function InvoicesPage() {
+  const { data = [], isLoading, isError } = useInvoices();
+  const queryClient = useQueryClient();
+  const invoices = data.map((invoice) => ({
+    ...invoice,
+    invoiceNumber: invoice.invoiceNumber || invoice.number,
+  }));
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('All statuses');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [notice, setNotice] = useState('');
+  const [actionError, setActionError] = useState('');
+  const exportInvoices = () => downloadCsv('invoices.csv', filteredInvoices);
   const filteredInvoices = useMemo(() => invoices.filter((invoice) => {
     const matchesQuery = [invoice.invoiceNumber, invoice.customer, invoice.subscription]
       .some((value) => value.toLowerCase().includes(query.toLowerCase()));
@@ -36,6 +48,23 @@ export function InvoicesPage() {
     window.setTimeout(() => setNotice(''), 3500);
   };
 
+  async function invoiceAction(action) {
+    try {
+      setActionError('');
+      if (action === 'print') {
+        const response = await apiClient.get(`/invoices/${selectedInvoice.id}/print`, { responseType: 'blob' });
+        const url = URL.createObjectURL(response.data);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      await apiClient.post(`/invoices/${selectedInvoice.id}/${action}`);
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setSelectedInvoice(null);
+    } catch (requestError) {
+      setActionError(requestError.response?.data?.detail || `Unable to ${action} invoice.`);
+    }
+  }
+
   return (
     <AppShell
       title="Invoices"
@@ -43,7 +72,7 @@ export function InvoicesPage() {
       breadcrumb="Brightloop / Invoices"
       activeNav="invoices"
       primaryAction={<button className="primary-action" type="button" onClick={generateInvoices}>Generate invoices</button>}
-      secondaryAction={<button className="secondary-action" type="button">Export</button>}
+      secondaryAction={<button className="secondary-action" type="button" onClick={exportInvoices}>Export</button>}
     >
       <div className="invoice-toolbar">
         <input
@@ -69,7 +98,9 @@ export function InvoicesPage() {
       </div>
 
       <div className="data-card invoice-card">
-        <InvoiceTable rows={filteredInvoices} onSelect={setSelectedInvoice} />
+        {isLoading && <p className="table-footer">Loading invoices…</p>}
+        {isError && <p className="table-footer">Unable to load invoices. Check that the API is running.</p>}
+        {!isLoading && !isError && <InvoiceTable rows={filteredInvoices} onSelect={setSelectedInvoice} />}
         <div className="table-footer">Showing {filteredInvoices.length} of {invoices.length} records</div>
       </div>
 
@@ -102,9 +133,10 @@ export function InvoicesPage() {
               <div><dt>Status</dt><dd>{selectedInvoice.status}</dd></div>
             </dl>
             <div className="drawer-actions">
-              <button className="primary-action" type="button">Mark as Confirmed</button>
-              <button className="secondary-action" type="button">Send</button>
-              <button className="secondary-action" type="button">Print</button>
+              {actionError && <p className="form-error" role="alert">{actionError}</p>}
+              <button className="primary-action" type="button" onClick={() => invoiceAction('confirm')}>Mark as Confirmed</button>
+              <button className="secondary-action" type="button" onClick={() => invoiceAction('send')}>Send</button>
+              <button className="secondary-action" type="button" onClick={() => invoiceAction('print')}>Print</button>
             </div>
           </>
         )}
