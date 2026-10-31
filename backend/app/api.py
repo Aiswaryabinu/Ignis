@@ -1,13 +1,13 @@
 from uuid import UUID, uuid4
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
-from . import models as m
+from . import models as m, services as s
 from .db import get_db
 from .security import current_user, hash_password, make_token, password_problems, verify_password, burn_password_check, staff_or_admin, customer_of
 
@@ -53,6 +53,18 @@ class PlanInput(BaseModel):
     end_date: date | None = None
     allow_renewal: bool = True
     is_active: bool = True
+
+
+class QuotationInput(BaseModel):
+    customer_id: UUID
+    plan_id: UUID
+    quantity: int = Field(ge=1)
+    valid_days: int = Field(default=30, ge=1, le=365)
+    discount_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+
+
+class TransitionInput(BaseModel):
+    reason: str | None = None
 
 
 def public_user(user: m.User):
@@ -203,3 +215,109 @@ def create_plan(body: PlanInput, db: Session = Depends(get_db), user: m.User = D
     db.commit()
     db.refresh(plan)
     return plan_data(plan)
+
+
+def quotation_data(quote: m.Quotation, db: Session):
+    line = quote.lines[0] if quote.lines else None
+    plan = db.get(m.SubscriptionPlan, line.plan_id) if line else None
+    return {"id": str(quote.id), "quotation_number": quote.quotation_number,
+            "number": quote.quotation_number, "customer_id": str(quote.customer_id),
+            "customer": quote.customer.company_name if quote.customer else "—",
+            "plan": plan.name if plan else "—",
+            "product": line.product_name if line else "—",
+            "quantity": line.quantity if line else 0,
+            "lines": f"{line.product_name} × {line.quantity}" if line else "—",
+            "issue_date": quote.issue_date, "valid_until": quote.valid_until,
+            "validFor": f"{(quote.valid_until - quote.issue_date).days} days",
+            "grand_total": quote.grand_total, "status": quote.status.title()}
+
+
+@router.get("/quotations")
+def list_quotations(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    query = db.query(m.Quotation)
+    if user.role == "CUSTOMER":
+        own = customer_of(db, user)
+        query = query.filter(m.Quotation.customer_id == own.id) if own else query.filter(False)
+    return [quotation_data(q, db) for q in query.order_by(m.Quotation.created_at.desc()).all()]
+
+
+@router.post("/quotations", status_code=201)
+def create_quotation(body: QuotationInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    customer = db.get(m.Customer, body.customer_id)
+    plan = db.get(m.SubscriptionPlan, body.plan_id)
+    if not customer or not plan:
+        raise HTTPException(404, "Customer or plan not found")
+    product = db.get(m.Product, plan.product_id) if plan.product_id else None
+    if not product:
+        raise HTTPException(422, "The selected plan must be linked to a product before quoting")
+    on = date.today()
+    if not plan.is_active or on < plan.start_date or (plan.end_date and on > plan.end_date):
+        raise HTTPException(409, "The selected plan is not currently available")
+    quote = m.Quotation(quotation_number=s.next_number(db, "QUO"), customer_id=customer.id,
+                        issue_date=on, valid_until=on + timedelta(days=body.valid_days),
+                        subtotal=0, discount_total=0, tax_total=0, grand_total=0,
+                        status="DRAFT", created_by=user.id)
+    quote.lines.append(s.price_quotation_line(db, plan, product, None, body.quantity, None,
+                                               body.discount_amount, on, customer))
+    s.recompute_quotation_totals(quote)
+    db.add(quote)
+    db.commit()
+    db.refresh(quote)
+    return quotation_data(quote, db)
+
+
+@router.post("/quotations/{quotation_id}/send")
+def send_quotation(quotation_id: UUID, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    quote = db.get(m.Quotation, quotation_id)
+    if not quote:
+        raise HTTPException(404, "Quotation not found")
+    if quote.status != "DRAFT":
+        raise HTTPException(409, "Only draft quotations can be sent")
+    quote.status = "SENT"
+    db.commit()
+    db.refresh(quote)
+    return quotation_data(quote, db)
+
+
+@router.post("/quotations/{quotation_id}/accept")
+def accept_quotation(quotation_id: UUID, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    subscription = s.convert_quotation(db, quotation_id, user)
+    db.commit()
+    return {"id": str(subscription.id), "subscription_number": subscription.subscription_number,
+            "status": subscription.status.title()}
+
+
+def subscription_data(sub: m.Subscription):
+    total = sum((line.line_total for line in sub.lines), Decimal("0"))
+    return {"id": str(sub.id), "subscription_number": sub.subscription_number,
+            "number": sub.subscription_number, "customer_id": str(sub.customer_id),
+            "customer": sub.customer.company_name if sub.customer else "—",
+            "plan": sub.plan.name if sub.plan else "—", "start_date": sub.start_date,
+            "start": sub.start_date.isoformat(), "expiry_date": sub.expiry_date,
+            "expiry": sub.expiry_date.isoformat() if sub.expiry_date else "—",
+            "payment_terms": sub.payment_terms or "—", "terms": sub.payment_terms or "—",
+            "amount": f"₹{total:,.2f}", "status": sub.status.title()}
+
+
+@router.get("/subscriptions")
+def list_subscriptions(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    query = db.query(m.Subscription)
+    if user.role == "CUSTOMER":
+        own = customer_of(db, user)
+        query = query.filter(m.Subscription.customer_id == own.id) if own else query.filter(False)
+    return [subscription_data(sub) for sub in query.order_by(m.Subscription.created_at.desc()).all()]
+
+
+@router.post("/subscriptions/{subscription_id}/{action}")
+def subscription_transition(subscription_id: UUID, action: str, body: TransitionInput | None = None,
+                            db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    actions = {"activate": "ACTIVE", "pause": "PAUSED", "resume": "ACTIVE", "close": "CLOSED"}
+    if action not in actions:
+        raise HTTPException(404, "Unknown subscription action")
+    sub = db.get(m.Subscription, subscription_id)
+    if not sub:
+        raise HTTPException(404, "Subscription not found")
+    s.set_status(db, sub, actions[action], user, body.reason if body else None)
+    db.commit()
+    db.refresh(sub)
+    return subscription_data(sub)
