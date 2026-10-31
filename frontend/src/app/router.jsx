@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../components/layout/AppShell.jsx';
@@ -9,7 +10,9 @@ import { PaymentsPage } from '../features/payments/pages/PaymentsPage.jsx';
 import { PlansPage } from '../features/plans/pages/PlansPage.jsx';
 import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage.jsx';
+import { ReportsPage } from '../features/reports/pages/ReportsPage.jsx';
 import { SubscriptionsPage } from '../features/subscriptions/pages/SubscriptionsPage.jsx';
+import apiClient from '../lib/apiClient';
 import { useAuth } from './providers.jsx';
 
 function RequireRole({ allowedRoles, children }) {
@@ -29,14 +32,23 @@ function RequireRole({ allowedRoles, children }) {
 }
 
 function DashboardPage() {
+  const { data, isLoading, error } = useQuery({ queryKey: ['reports', 'dashboard'], queryFn: async () => (await apiClient.get('/reports/dashboard')).data });
   return (
     <AppShell
       title="Dashboard"
       description="Overview, charts, and KPIs."
       breadcrumb="Brightloop / Dashboard"
-      activeNav="customers"
+      activeNav="Overview"
     >
-      <div className="placeholder-card">Dashboard content placeholder</div>
+      {isLoading && <p>Loading dashboard…</p>}
+      {error && <p role="alert">{error.response?.data?.detail || 'Could not load dashboard.'}</p>}
+      {data && <div className="data-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20, padding: 20 }}>
+        <div><span>Active subscriptions</span><h2>{data.active_subscriptions}</h2></div>
+        <div><span>Monthly recurring revenue</span><h2>₹{Number(data.mrr).toLocaleString('en-IN')}</h2></div>
+        <div><span>Collected</span><h2>₹{Number(data.collected).toLocaleString('en-IN')}</h2></div>
+        <div><span>Outstanding</span><h2>₹{Number(data.outstanding).toLocaleString('en-IN')}</h2></div>
+        <div><span>Overdue invoices</span><h2>{data.overdue_count}</h2></div>
+      </div>}
     </AppShell>
   );
 }
@@ -281,6 +293,7 @@ export function AppRouter() {
 
       <Route path="/discounts" element={<RequireRole allowedRoles={['Admin', 'Staff']}><DiscountsPage /></RequireRole>} />
       <Route path="/payments" element={<RequireRole allowedRoles={['Admin', 'Staff']}><PaymentsPage /></RequireRole>} />
+      <Route path="/reports" element={<RequireRole allowedRoles={['Admin', 'Staff']}><ReportsPage /></RequireRole>} />
 
       <Route
         path="/settings"

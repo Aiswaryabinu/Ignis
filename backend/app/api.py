@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from . import models as m, services as s
 from .db import get_db
 from .security import current_user, hash_password, make_token, password_problems, verify_password, burn_password_check, staff_or_admin, customer_of
+from .queries import summary
 
 router = APIRouter()
 
@@ -417,3 +418,13 @@ def record_payment(body: PaymentInput, db: Session = Depends(get_db), user: m.Us
     db.refresh(payment)
     return {"id": str(payment.id), "payment_number": payment.payment_number,
             "amount": payment.amount, "status": payment.status}
+
+
+@router.get("/reports/dashboard")
+def dashboard_report(date_from: date | None = None, date_to: date | None = None,
+                     customer_id: UUID | None = None, plan_id: UUID | None = None,
+                     db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    if user.role == "CUSTOMER":
+        own = customer_of(db, user)
+        customer_id = own.id if own else UUID(int=0)
+    return summary(db, date.today(), date_from, date_to, customer_id, plan_id)
