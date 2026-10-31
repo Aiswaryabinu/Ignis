@@ -1,4 +1,5 @@
 from uuid import UUID, uuid4
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
@@ -26,6 +27,15 @@ class CustomerInput(BaseModel):
     contact_person: str | None = Field(default=None, max_length=255)
     phone: str | None = Field(default=None, max_length=30)
     industry: str | None = Field(default=None, max_length=100)
+    is_active: bool = True
+
+
+class ProductInput(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    product_type: str = Field(min_length=1, max_length=100)
+    sales_price: Decimal = Field(ge=Decimal("0"))
+    cost_price: Decimal = Field(ge=Decimal("0"))
+    notes: str | None = None
     is_active: bool = True
 
 
@@ -120,3 +130,27 @@ def update_customer(customer_id: UUID, body: CustomerInput, db: Session = Depend
     db.commit()
     db.refresh(customer)
     return customer_data(customer, db)
+
+
+def product_data(product: m.Product):
+    variants = [f"{variant.attribute_name}: {variant.attribute_value} (+₹{variant.additional_price})"
+                for variant in product.variants]
+    return {"id": str(product.id), "name": product.name, "type": product.product_type,
+            "product_type": product.product_type, "sales_price": product.sales_price,
+            "cost_price": product.cost_price, "sales": f"₹{product.sales_price:,.2f}",
+            "cost": f"₹{product.cost_price:,.2f}", "variants": ", ".join(variants) or "None",
+            "is_active": product.is_active, "status": "Active" if product.is_active else "Inactive"}
+
+
+@router.get("/products")
+def list_products(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    return [product_data(product) for product in db.query(m.Product).order_by(m.Product.name).all()]
+
+
+@router.post("/products", status_code=201)
+def create_product(body: ProductInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    product = m.Product(**body.model_dump())
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+    return product_data(product)
