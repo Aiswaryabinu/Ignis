@@ -109,4 +109,4 @@ frontend/src/features/reports/
 - Partial payments and allocations update outstanding balances correctly.
 - Reports distinguish collected revenue from invoice totals.
 - Scheduler retries do not create duplicate invoices.
-- Tests cover billing idempotency, payment allocation, permissions, and report calculations.
+- Tests cover billing idempotency, payment allocation, permissions, and report calculations
