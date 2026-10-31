@@ -862,6 +862,278 @@ button, input, select {
   color: #5c7382;
 }
 
+.report-toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 16px;
+}
+
+.report-toolbar select,
+.settings-search {
+  min-height: 44px;
+  border: 1px solid rgba(15, 58, 74, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #233f50;
+  padding: 0 12px;
+}
+
+.report-toolbar select:first-child {
+  min-width: 140px;
+}
+
+.report-toolbar select:last-child {
+  min-width: 164px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  min-height: 103px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid rgba(18, 58, 75, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.metric-card span,
+.metric-card small {
+  color: #698295;
+}
+
+.metric-card strong {
+  color: #142a38;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.metric-card small {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.metric-card .success-value {
+  color: #07875c;
+}
+
+.danger-metric strong {
+  color: #d72f2f;
+}
+
+.report-card {
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.overview-intro {
+  max-width: 620px;
+  margin: 24px 0 18px;
+  color: #698295;
+  line-height: 1.5;
+}
+
+.overview-metrics {
+  margin-bottom: 16px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-lower-grid {
+  grid-template-columns: 1fr 1fr 1.18fr;
+}
+
+.dashboard-card {
+  min-width: 0;
+  border: 1px solid rgba(18, 58, 75, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  overflow: hidden;
+}
+
+.dashboard-card h2 {
+  margin: 20px 20px 4px;
+  color: #142a38;
+  font-size: 1rem;
+}
+
+.dashboard-card > p {
+  margin: 0 20px;
+  color: #698295;
+  font-size: 0.82rem;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin: 14px 20px 0;
+  color: #698295;
+  font-size: 0.78rem;
+}
+
+.chart-legend i,
+.legend-billed,
+.legend-collected {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 3px;
+}
+
+.legend-billed { background: #dfe7ed; }
+.legend-collected { background: #0d82c7; }
+
+.bar-chart {
+  height: 208px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 18px;
+  padding: 18px 24px 16px;
+}
+
+.bar-group {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: #698295;
+  font-size: 0.75rem;
+}
+
+.bar-group b {
+  color: #142a38;
+  font-size: 0.75rem;
+}
+
+.bars {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.bars i {
+  display: block;
+  width: 26px;
+  max-height: 140px;
+  border-radius: 6px 6px 0 0;
+  background: #dfe7ed;
+}
+
+.bars i + i { background: #0d82c7; }
+
+.chase-card {
+  min-height: 300px;
+}
+
+.chase-row,
+.expiry-row,
+.health-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(18, 58, 75, 0.09);
+}
+
+.chase-row div,
+.expiry-row {
+  display: grid;
+  gap: 6px;
+}
+
+.chase-row span,
+.expiry-row span {
+  color: #698295;
+  font-size: 0.8rem;
+}
+
+.chase-row b,
+.expiry-row b,
+.health-row b {
+  color: #142a38;
+  white-space: nowrap;
+}
+
+.pipeline-card,
+.health-card,
+.expiry-card {
+  min-height: 360px;
+}
+
+.pipeline-row {
+  padding: 14px 20px 0;
+}
+
+.pipeline-row > div {
+  display: flex;
+  justify-content: space-between;
+  color: #233f50;
+}
+
+.pipeline-row i {
+  display: block;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: #e5ebef;
+  overflow: hidden;
+}
+
+.pipeline-row em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0d82c7;
+}
+
+.health-row {
+  align-items: center;
+  min-height: 62px;
+}
+
+.expiry-row:first-of-type {
+  margin-top: 16px;
+}
+
+.recent-card {
+  margin-bottom: 20px;
+}
+
+.recent-card .data-table {
+  margin-top: 16px;
+}
+
+.settings-toolbar {
+  margin: 18px 0 16px;
+}
+
+.settings-search {
+  width: 268px;
+}
+
+.settings-card {
+  background: rgba(255, 255, 255, 0.68);
+}
+
 .placeholder-card {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(15, 58, 74, 0.08);
