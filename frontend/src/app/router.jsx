@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { AppShell } from '../components/layout/AppShell.jsx';
+import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
+import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
 import { useAuth } from './providers.jsx';
 
 function RequireRole({ allowedRoles, children }) {
@@ -10,14 +13,23 @@ function RequireRole({ allowedRoles, children }) {
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/customers" replace />;
   }
 
   return children;
 }
 
 function DashboardPage() {
-  return <div className="page-shell"><h1>Dashboard</h1><p>Overview, charts, and KPIs.</p></div>;
+  return (
+    <AppShell
+      title="Dashboard"
+      description="Overview, charts, and KPIs."
+      breadcrumb="Brightloop / Dashboard"
+      activeNav="customers"
+    >
+      <div className="placeholder-card">Dashboard content placeholder</div>
+    </AppShell>
+  );
 }
 
 function SignInPage() {
@@ -141,18 +153,23 @@ function ForgotPasswordPage() {
   );
 }
 
-function CustomersPage() {
-  return <div className="page-shell"><h1>Customers</h1><p>Customer management placeholder.</p></div>;
-}
-
 function SettingsPage() {
-  return <div className="page-shell"><h1>Settings</h1><p>Team and staff access settings.</p></div>;
+  return (
+    <AppShell
+      title="Settings"
+      description="Team and staff access settings."
+      breadcrumb="Brightloop / Settings"
+      activeNav="customers"
+    >
+      <div className="placeholder-card">Settings content placeholder</div>
+    </AppShell>
+  );
 }
 
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/auth/signin" replace />} />
+      <Route path="/" element={<Navigate to="/customers" replace />} />
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/signup" element={<SignUpPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
@@ -176,6 +193,15 @@ export function AppRouter() {
       />
 
       <Route
+        path="/products"
+        element={
+          <RequireRole allowedRoles={['Admin', 'Staff']}>
+            <ProductsPage />
+          </RequireRole>
+        }
+      />
+
+      <Route
         path="/settings"
         element={
           <RequireRole allowedRoles={['Admin']}>
@@ -184,7 +210,7 @@ export function AppRouter() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/customers" replace />} />
     </Routes>
   );
 }
