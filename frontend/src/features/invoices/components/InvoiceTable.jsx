@@ -8,6 +8,7 @@ const statusClass = {
   Draft: 'warning',
   Overdue: 'danger',
   Confirmed: 'info',
+  Partially_Paid: 'warning',
   Paid: 'success',
 };
 
