@@ -21,6 +21,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-please-32-bytes-min}
       SCHEDULER_ENABLED: "true"
       CORS_ORIGINS: "http://localhost:5173"
+      MAIL_BACKEND: ${MAIL_BACKEND:-console}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-Brightloop Billing <billing@brightloop.example>}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
     depends_on:
       db:
         condition: service_healthy

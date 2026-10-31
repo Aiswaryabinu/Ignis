@@ -3,14 +3,16 @@ from decimal import Decimal
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from . import models as m, services as s
 from .db import get_db
-from .security import current_user, hash_password, make_token, password_problems, verify_password, burn_password_check, staff_or_admin, customer_of
+from .security import current_user, hash_password, make_token, password_problems, verify_password, burn_password_check, staff_or_admin, admin_only, customer_of
 from .queries import summary
+from .ratelimit import client_ip, limiter
+from . import config
 
 router = APIRouter()
 
@@ -22,6 +24,10 @@ class Credentials(BaseModel):
 
 class Registration(Credentials):
     full_name: str = Field(min_length=1, max_length=255)
+
+
+class StaffInput(Registration):
+    pass
 
 
 class CustomerInput(BaseModel):
@@ -104,18 +110,32 @@ def public_user(user: m.User):
 
 
 @router.post("/auth/login")
-def login(body: Credentials, db: Session = Depends(get_db)):
-    user = db.query(m.User).filter(m.User.email == body.email.lower()).first()
+def login(body: Credentials, request: Request, db: Session = Depends(get_db)):
+    email = body.email.lower()
+    ip = client_ip(request)
+    account_key = f"login:account:{email}:{ip}"
+    ip_key = f"login:ip:{ip}"
+    limiter.check(account_key, config.LOGIN_MAX_FAILURES, config.LOGIN_WINDOW_SECONDS)
+    limiter.check(ip_key, config.LOGIN_MAX_FAILURES_PER_IP, config.LOGIN_WINDOW_SECONDS)
+    user = db.query(m.User).filter(m.User.email == email).first()
     if not user:
         burn_password_check(body.password)
+        limiter.hit(account_key, config.LOGIN_WINDOW_SECONDS)
+        limiter.hit(ip_key, config.LOGIN_WINDOW_SECONDS)
         raise HTTPException(401, "Email or password is incorrect")
     if not user.is_active or not verify_password(body.password, user.password_hash):
+        limiter.hit(account_key, config.LOGIN_WINDOW_SECONDS)
+        limiter.hit(ip_key, config.LOGIN_WINDOW_SECONDS)
         raise HTTPException(401, "Email or password is incorrect")
+    limiter.reset(account_key)
     return {"access_token": make_token(user), "token_type": "bearer", "user": public_user(user)}
 
 
 @router.post("/auth/register", status_code=201)
-def register(body: Registration, db: Session = Depends(get_db)):
+def register(body: Registration, request: Request, db: Session = Depends(get_db)):
+    ip_key = f"register:{client_ip(request)}"
+    limiter.check(ip_key, config.REGISTER_MAX_PER_IP, 3600)
+    limiter.hit(ip_key, 3600)
     email = body.email.lower()
     if db.query(m.User).filter(m.User.email == email).first():
         raise HTTPException(409, "An account with this email already exists")
@@ -139,6 +159,28 @@ def register(body: Registration, db: Session = Depends(get_db)):
 @router.get("/auth/me")
 def get_me(user: m.User = Depends(current_user)):
     return public_user(user)
+
+
+@router.get("/users")
+def list_users(db: Session = Depends(get_db), user: m.User = Depends(admin_only)):
+    return [public_user(item) for item in db.query(m.User).order_by(m.User.created_at.desc()).all()]
+
+
+@router.post("/users/staff", status_code=201)
+def create_staff(body: StaffInput, db: Session = Depends(get_db), user: m.User = Depends(admin_only)):
+    email = body.email.lower()
+    if db.query(m.User).filter(m.User.email == email).first():
+        raise HTTPException(409, "An account with this email already exists")
+    problems = password_problems(body.password)
+    if problems:
+        raise HTTPException(422, "Password must contain " + ", ".join(problems))
+    staff = m.User(email=email, full_name=body.full_name.strip(), password_hash=hash_password(body.password), role="STAFF")
+    db.add(staff)
+    db.flush()
+    s.audit(db, user, "user.staff_created", "user", staff.id, None, {"email": staff.email, "role": staff.role})
+    db.commit()
+    db.refresh(staff)
+    return public_user(staff)
 
 
 def customer_data(customer: m.Customer, db: Session):
@@ -287,7 +329,7 @@ def create_quotation(body: QuotationInput, db: Session = Depends(get_db), user: 
                         issue_date=on, valid_until=on + timedelta(days=body.valid_days),
                         subtotal=0, discount_total=0, tax_total=0, grand_total=0,
                         status="DRAFT", created_by=user.id)
-    quote.lines.append(s.price_quotation_line(db, plan, product, None, body.quantity, None,
+    quote.lines.append(s.price_quotation_line(db, plan, product, None, body.quantity, plan.price,
                                                body.discount_amount, on, customer))
     s.recompute_quotation_totals(quote)
     db.add(quote)

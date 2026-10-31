@@ -15,6 +15,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
+import { useAuth } from '../../app/providers.jsx';
 
 export function AppShell({
   title,
@@ -25,6 +26,7 @@ export function AppShell({
   children,
   activeNav = 'customers',
 }) {
+  const { logout } = useAuth();
   const navItems = [
     { label: 'Customers', href: '/customers', icon: Users },
     { label: 'Products', href: '/products', icon: Boxes },
@@ -69,7 +71,7 @@ export function AppShell({
         </div>
 
         <div className="sidebar-footer">
-          <a href="#" className="nav-item signout">
+          <a href="/auth/signin" className="nav-item signout" onClick={() => logout()}>
             <span className="nav-icon"><LogOut size={17} strokeWidth={2.15} /></span>
             <span>Sign out</span>
           </a>

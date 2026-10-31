@@ -10,7 +10,15 @@ from .api import router as api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config.assert_production_ready()
+    if config.SCHEDULER_ENABLED:
+        from .worker import start_scheduler
+        scheduler = start_scheduler()
+    else:
+        scheduler = None
     yield
+    if scheduler:
+        from .worker import stop_scheduler
+        stop_scheduler()
 
 
 app = FastAPI(title="Ignis Billing API", version="1.0.0", lifespan=lifespan)

@@ -11,6 +11,7 @@ import { PlansPage } from '../features/plans/pages/PlansPage.jsx';
 import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage.jsx';
 import { ReportsPage } from '../features/reports/pages/ReportsPage.jsx';
+import { SettingsPage } from '../features/settings/pages/SettingsPage.jsx';
 import { SubscriptionsPage } from '../features/subscriptions/pages/SubscriptionsPage.jsx';
 import apiClient from '../lib/apiClient';
 import { useAuth } from './providers.jsx';
@@ -204,19 +205,6 @@ function ForgotPasswordPage() {
         </form>
       </div>
     </div>
-  );
-}
-
-function SettingsPage() {
-  return (
-    <AppShell
-      title="Settings"
-      description="Team and staff access settings."
-      breadcrumb="Brightloop / Settings"
-      activeNav="customers"
-    >
-      <div className="placeholder-card">Settings content placeholder</div>
-    </AppShell>
   );
 }
 
