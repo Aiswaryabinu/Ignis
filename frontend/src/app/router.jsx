@@ -5,6 +5,9 @@ import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage.jsx';
 import { DiscountsPage } from '../features/discounts/pages/DiscountsPage.jsx';
 import { PaymentsPage } from '../features/payments/pages/PaymentsPage.jsx';
+import { DashboardPage } from '../features/dashboard/pages/DashboardPage.jsx';
+import { ReportsPage } from '../features/reports/pages/ReportsPage.jsx';
+import { SettingsPage } from '../features/settings/pages/SettingsPage.jsx';
 import { PlansPage } from '../features/plans/pages/PlansPage.jsx';
 import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage.jsx';
@@ -23,19 +26,6 @@ function RequireRole({ allowedRoles, children }) {
   }
 
   return children;
-}
-
-function DashboardPage() {
-  return (
-    <AppShell
-      title="Dashboard"
-      description="Overview, charts, and KPIs."
-      breadcrumb="Brightloop / Dashboard"
-      activeNav="customers"
-    >
-      <div className="placeholder-card">Dashboard content placeholder</div>
-    </AppShell>
-  );
 }
 
 function SignInPage() {
@@ -159,19 +149,6 @@ function ForgotPasswordPage() {
   );
 }
 
-function SettingsPage() {
-  return (
-    <AppShell
-      title="Settings"
-      description="Team and staff access settings."
-      breadcrumb="Brightloop / Settings"
-      activeNav="customers"
-    >
-      <div className="placeholder-card">Settings content placeholder</div>
-    </AppShell>
-  );
-}
-
 export function AppRouter() {
   return (
     <Routes>
@@ -245,6 +222,7 @@ export function AppRouter() {
 
       <Route path="/discounts" element={<RequireRole allowedRoles={['Admin', 'Staff']}><DiscountsPage /></RequireRole>} />
       <Route path="/payments" element={<RequireRole allowedRoles={['Admin', 'Staff']}><PaymentsPage /></RequireRole>} />
+      <Route path="/reports" element={<RequireRole allowedRoles={['Admin', 'Staff']}><ReportsPage /></RequireRole>} />
 
       <Route
         path="/settings"
