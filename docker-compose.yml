@@ -1,19 +1,18 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: subscription_db
     volumes:
-      - subscription_pgdata:/var/lib/postgresql/data
+      - subscription_pgdata_v18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       retries: 10
     ports:
-  - "5435:5432"
-
+      - "5435:5432"
 
   api:
     build: ./backend
@@ -29,6 +28,4 @@ services:
       - "8000:8000"
 
 volumes:
-  subscription_pgdata:
-
-
+  subscription_pgdata_v18:
