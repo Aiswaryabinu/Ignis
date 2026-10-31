@@ -570,6 +570,18 @@ button, input, select {
   border-color: rgba(38, 173, 102, 0.18);
 }
 
+.status-pill.warning {
+  background: rgba(227, 144, 56, 0.12);
+  color: #b66d18;
+  border-color: rgba(227, 144, 56, 0.18);
+}
+
+.status-pill.info {
+  background: rgba(62, 133, 217, 0.12);
+  color: #2a6fbd;
+  border-color: rgba(62, 133, 217, 0.18);
+}
+
 .status-pill.muted {
   background: rgba(135, 149, 158, 0.12);
   color: #566d7e;
