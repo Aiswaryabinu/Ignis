@@ -5,34 +5,67 @@ import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const customers = [
   {
+    id: 1,
     name: 'Northwind Traders',
     email: 'ops@northwind.in',
+    phone: '+91 98765 43210',
     industry: 'Retail',
     subscriptions: 2,
     status: 'Active',
+    location: 'Mumbai, Maharashtra',
+    joined: 'Jan 12, 2024',
+    revenue: '₹1,24,000',
+    contact: 'Rahul Mehta',
   },
   {
+    id: 2,
     name: 'Kerala Foods Co.',
     email: 'it@keralafoods.in',
+    phone: '+91 91234 56789',
     industry: 'Food & Beverage',
     subscriptions: 1,
     status: 'Active',
+    location: 'Kochi, Kerala',
+    joined: 'Mar 5, 2024',
+    revenue: '₹62,500',
+    contact: 'Priya Nair',
   },
   {
+    id: 3,
     name: 'Tidewater Logistics',
     email: 'admin@tidewater.in',
+    phone: '+91 87654 32109',
     industry: 'Logistics',
     subscriptions: 1,
     status: 'Active',
+    location: 'Chennai, Tamil Nadu',
+    joined: 'Feb 19, 2024',
+    revenue: '₹48,000',
+    contact: 'Arun Krishnan',
   },
   {
+    id: 4,
     name: 'Lumen Clinics',
     email: 'billing@lumen.in',
+    phone: '+91 99887 76655',
     industry: 'Healthcare',
     subscriptions: 0,
     status: 'Inactive',
+    location: 'Bengaluru, Karnataka',
+    joined: 'Apr 2, 2024',
+    revenue: '₹0',
+    contact: 'Dr. Sneha Rao',
   },
 ];
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+}
 
 export function CustomersPage() {
   const [query, setQuery] = useState('');

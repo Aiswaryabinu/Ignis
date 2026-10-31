@@ -5,6 +5,7 @@ import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const subscriptions = [
   {
+    id: 1,
     number: 'SUB-0001',
     customer: 'Northwind Traders',
     plan: 'Business Monthly',
@@ -15,6 +16,7 @@ const subscriptions = [
     status: 'Active',
   },
   {
+    id: 2,
     number: 'SUB-0002',
     customer: 'Kerala Foods Co.',
     plan: 'Scale Annual',
@@ -25,6 +27,7 @@ const subscriptions = [
     status: 'Active',
   },
   {
+    id: 3,
     number: 'SUB-0003',
     customer: 'Tidewater Logistics',
     plan: 'Starter Monthly',
@@ -35,6 +38,7 @@ const subscriptions = [
     status: 'Confirmed',
   },
   {
+    id: 4,
     number: 'SUB-0004',
     customer: 'Northwind Traders',
     plan: 'Secure Weekly',
@@ -45,6 +49,7 @@ const subscriptions = [
     status: 'Quotation',
   },
   {
+    id: 5,
     number: 'SUB-0005',
     customer: 'Lumen Clinics',
     plan: 'Starter Monthly',
@@ -62,6 +67,16 @@ const pillClassMap = {
   Quotation: 'info',
   Closed: 'muted',
 };
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export function SubscriptionsPage() {
   const [query, setQuery] = useState('');

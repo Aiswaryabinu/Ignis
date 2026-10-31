@@ -5,6 +5,7 @@ import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const products = [
   {
+    id: 1,
     name: 'CloudDesk Pro',
     type: 'Software',
     sales: '₹7,500',
@@ -13,6 +14,7 @@ const products = [
     status: 'Active',
   },
   {
+    id: 2,
     name: 'Analytics Suite',
     type: 'Software',
     sales: '₹21,600',
@@ -21,6 +23,7 @@ const products = [
     status: 'Active',
   },
   {
+    id: 3,
     name: 'SecureVault',
     type: 'Add-on',
     sales: '₹1,400',
@@ -29,6 +32,16 @@ const products = [
     status: 'Active',
   },
 ];
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export function ProductsPage() {
   const [query, setQuery] = useState('');

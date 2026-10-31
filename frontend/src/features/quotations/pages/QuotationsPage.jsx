@@ -5,6 +5,7 @@ import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const quotations = [
   {
+    id: 1,
     template: 'Retail Starter Pack',
     plan: 'Starter Monthly',
     lines: 'CloudDesk Pro × 5',
@@ -12,6 +13,7 @@ const quotations = [
     status: 'Active',
   },
   {
+    id: 2,
     template: 'Enterprise Analytics',
     plan: 'Scale Annual',
     lines: 'Analytics Suite × 10',
@@ -19,6 +21,7 @@ const quotations = [
     status: 'Active',
   },
   {
+    id: 3,
     template: 'Security Add-on',
     plan: 'Secure Weekly',
     lines: 'SecureVault × 2',
@@ -26,6 +29,16 @@ const quotations = [
     status: 'Draft',
   },
 ];
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export function QuotationsPage() {
   const [query, setQuery] = useState('');

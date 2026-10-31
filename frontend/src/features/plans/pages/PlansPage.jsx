@@ -5,6 +5,7 @@ import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const plans = [
   {
+    id: 1,
     plan: 'Business Monthly',
     product: 'CloudDesk Pro',
     billing: 'Monthly',
@@ -14,6 +15,7 @@ const plans = [
     status: 'Active',
   },
   {
+    id: 2,
     plan: 'Scale Annual',
     product: 'Analytics Suite',
     billing: 'Yearly',
@@ -23,6 +25,7 @@ const plans = [
     status: 'Active',
   },
   {
+    id: 3,
     plan: 'Secure Weekly',
     product: 'SecureVault',
     billing: 'Weekly',
@@ -32,6 +35,7 @@ const plans = [
     status: 'Draft',
   },
   {
+    id: 4,
     plan: 'Starter Monthly',
     product: 'CloudDesk Pro',
     billing: 'Monthly',
@@ -46,6 +50,16 @@ const pillClassMap = {
   Active: 'success',
   Draft: 'warning',
 };
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export function PlansPage() {
   const [query, setQuery] = useState('');
