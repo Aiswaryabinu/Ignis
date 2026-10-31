@@ -9,11 +9,9 @@ import {
   Layers3,
   LogOut,
   ReceiptText,
-  Search,
   Settings,
   Tag,
   Users,
-  WalletCards,
 } from 'lucide-react';
 import { useAuth } from '../../app/providers.jsx';
 

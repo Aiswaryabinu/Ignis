@@ -50,6 +50,15 @@ class CustomerInput(BaseModel):
     is_active: bool = True
 
 
+class CustomerPatch(BaseModel):
+    company_name: str | None = Field(default=None, min_length=1, max_length=255)
+    billing_email: EmailStr | None = None
+    contact_person: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=30)
+    industry: str | None = Field(default=None, max_length=100)
+    is_active: bool | None = None
+
+
 class ProductInput(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     product_type: str = Field(min_length=1, max_length=100)
@@ -277,7 +286,7 @@ def create_customer(body: CustomerInput, db: Session = Depends(get_db), user: m.
 
 
 @router.patch("/customers/{customer_id}")
-def update_customer(customer_id: UUID, body: CustomerInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+def update_customer(customer_id: UUID, body: CustomerPatch, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
     customer = db.get(m.Customer, customer_id)
     if not customer:
         raise HTTPException(404, "Customer not found")
@@ -402,6 +411,13 @@ def send_quotation(quotation_id: UUID, db: Session = Depends(get_db), user: m.Us
     if quote.status != "DRAFT":
         raise HTTPException(409, "Only draft quotations can be sent")
     quote.status = "SENT"
+    customer = quote.customer
+    s.notify(db, customer, "quotation.sent", f"Quotation {quote.quotation_number}",
+             f"Your quotation totals ₹{quote.grand_total} and is valid until {quote.valid_until}.", "quotation", quote.id)
+    s.outbox(db, "quotation.sent", "quotation", quote.id,
+             {"to": customer.billing_email, "customer": customer.company_name,
+              "quotation_number": quote.quotation_number, "total": s.inr(quote.grand_total),
+              "valid_until": quote.valid_until.strftime("%d %b %Y")})
     db.commit()
     db.refresh(quote)
     return quotation_data(quote, db)
