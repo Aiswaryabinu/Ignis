@@ -1,10 +1,15 @@
 import os
+import json
 def _flag(name, default): return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://brightloop:brightloop@localhost:5432/brightloop")
-JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me-please-32-bytes-min")
+JWT_SECRET = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "dev-secret-change-me-please-32-bytes-min"))
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "720"))
-CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+CORS_RAW = os.getenv("CORS_ORIGINS", "*")
+try:
+    CORS_ORIGINS = json.loads(CORS_RAW) if CORS_RAW.lstrip().startswith("[") else [o.strip() for o in CORS_RAW.split(",") if o.strip()]
+except json.JSONDecodeError:
+    CORS_ORIGINS = [o.strip() for o in CORS_RAW.split(",") if o.strip()]
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()      # "production" turns on the start-up safety checks
 # Reset/verify tokens are returned in API responses only when this is on (default: on in development, off in production).
 DEV_RETURN_TOKENS = _flag("DEV_RETURN_TOKENS", "0" if ENVIRONMENT == "production" else "1")
@@ -18,18 +23,18 @@ REGISTER_MAX_PER_IP = int(os.getenv("REGISTER_MAX_PER_IP", "30"))              #
 TRUST_FORWARDED_FOR = _flag("TRUST_FORWARDED_FOR", "0")                        # 1 only behind a proxy that overwrites X-Forwarded-For
 
 # ---- e-mail delivery (read at call time, so tests can change them) ----
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "console")        # console (log only) | smtp | memory (tests)
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", os.getenv("MAIL_BACKEND", "console"))        # console (log only) | smtp | memory (tests)
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "Brightloop Software <no-reply@brightloop.local>")
+SMTP_FROM = os.getenv("SMTP_FROM", os.getenv("MAIL_FROM", "Brightloop Software <no-reply@brightloop.local>"))
 SMTP_STARTTLS = _flag("SMTP_STARTTLS", "1")
 SMTP_SSL = _flag("SMTP_SSL", "0")                            # implicit TLS (port 465); overrides STARTTLS
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000").rstrip("/")   # used to build links in e-mails
 
 # ---- background jobs ----
-SCHEDULER_ENABLED = _flag("SCHEDULER_ENABLED", "1")          # run the in-process scheduler inside the API
+SCHEDULER_ENABLED = _flag("SCHEDULER_ENABLED", os.getenv("ENABLE_SCHEDULER", "1"))          # run the in-process scheduler inside the API
 OUTBOX_POLL_SECONDS = int(os.getenv("OUTBOX_POLL_SECONDS", "10"))
 OUTBOX_MAX_ATTEMPTS = int(os.getenv("OUTBOX_MAX_ATTEMPTS", "5"))
 DAILY_JOBS_HOUR = int(os.getenv("DAILY_JOBS_HOUR", "2"))     # server-local hour after which billing + reminders run once a day
