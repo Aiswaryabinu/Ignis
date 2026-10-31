@@ -3,7 +3,6 @@ import {
   Bell,
   Boxes,
   BriefcaseBusiness,
-  ChevronDown,
   CreditCard,
   FileText,
   Grid2x2,
@@ -84,10 +83,7 @@ export function AppShell({
           </div>
 
           <div className="topbar-controls">
-            <div className="user-select">
-              <span>Admin</span>
-              <ChevronDown size={16} strokeWidth={2.2} />
-            </div>
+            <div className="user-select">Admin</div>
             <div className="notification-wrap">
               <Bell size={16} strokeWidth={2.2} />
               <span className="notification-pill" />
@@ -102,7 +98,7 @@ export function AppShell({
           </div>
         </header>
 
-        <div className="content-panel">
+        <div className={`content-panel ${activeNav.toLowerCase()}-content`}>
           <div className="page-header-row">
             <div>
               <h1 className="page-title">{title}</h1>

@@ -1,21 +1,45 @@
+const currency = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
+const statusClass = {
+  Draft: 'warning',
+  Overdue: 'danger',
+  Confirmed: 'info',
+  Paid: 'success',
+};
+
 export function InvoiceTable({ rows = [] }) {
   return (
-    <table>
+    <table className="data-table invoice-table">
       <thead>
         <tr>
           <th>Invoice</th>
           <th>Customer</th>
-          <th>Amount</th>
+          <th>Subscription</th>
+          <th>Date</th>
+          <th>Due</th>
+          <th className="amount-column">Total</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.id}>
-            <td>{row.invoiceNumber}</td>
+            <td className="invoice-number">{row.invoiceNumber}</td>
             <td>{row.customer}</td>
-            <td>{row.amount}</td>
-            <td>{row.status}</td>
+            <td>{row.subscription}</td>
+            <td>{row.date}</td>
+            <td>{row.due}</td>
+            <td className="amount-column">{currency.format(row.total)}</td>
+            <td>
+              <span className={`status-pill ${statusClass[row.status]}`}>
+                <span className="dot" />
+                {row.status}
+              </span>
+            </td>
           </tr>
         ))}
       </tbody>
