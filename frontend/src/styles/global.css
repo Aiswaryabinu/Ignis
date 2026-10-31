@@ -512,6 +512,80 @@ button, input, select {
   padding: 0 14px;
 }
 
+.invoice-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 16px;
+}
+
+.invoice-search,
+.invoice-filter {
+  min-height: 44px;
+  border: 1px solid rgba(15, 58, 74, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #233f50;
+  padding: 0 12px;
+}
+
+.invoice-search {
+  width: 274px;
+}
+
+.invoice-filter {
+  min-width: 122px;
+}
+
+.invoice-search::placeholder {
+  color: #7890a3;
+}
+
+.invoice-search:focus,
+.invoice-filter:focus {
+  outline: 3px solid rgba(45, 135, 219, 0.16);
+  border-color: var(--color-primary);
+}
+
+.invoice-content .page-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.invoice-content .primary-action,
+.invoice-content .secondary-action {
+  min-width: 162px;
+}
+
+.invoice-card {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.invoice-table th,
+.invoice-table td {
+  padding: 17px 18px;
+}
+
+.invoice-table th:first-child,
+.invoice-table td:first-child {
+  padding-left: 19px;
+}
+
+.invoice-number {
+  color: #0d78bd !important;
+  font-weight: 700;
+}
+
+.amount-column {
+  text-align: right !important;
+}
+
+.status-pill.danger {
+  background: #fee7e5;
+  color: #d72f2f;
+  border-color: rgba(215, 47, 47, 0.12);
+}
+
 .search-box {
   flex: 1;
   max-width: 480px;
@@ -630,7 +704,8 @@ button, input, select {
   }
 
   .page-header-row,
-  .table-toolbar {
+  .table-toolbar,
+  .invoice-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
@@ -661,6 +736,11 @@ button, input, select {
 
   .primary-action,
   .secondary-action {
+    width: 100%;
+  }
+
+  .invoice-search,
+  .invoice-filter {
     width: 100%;
   }
 }
