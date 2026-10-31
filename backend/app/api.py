@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 from decimal import Decimal
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -65,6 +65,21 @@ class QuotationInput(BaseModel):
 
 class TransitionInput(BaseModel):
     reason: str | None = None
+
+
+class AllocationInput(BaseModel):
+    invoice_id: UUID
+    amount: Decimal = Field(gt=Decimal("0"))
+
+
+class PaymentInput(BaseModel):
+    customer_id: UUID
+    payment_method: Literal["CASH", "BANK_TRANSFER", "CARD", "UPI", "OTHER"]
+    amount: Decimal = Field(gt=Decimal("0"))
+    payment_date: date | None = None
+    reference_number: str | None = None
+    notes: str | None = None
+    allocations: list[AllocationInput] = Field(min_length=1)
 
 
 def public_user(user: m.User):
@@ -321,3 +336,83 @@ def subscription_transition(subscription_id: UUID, action: str, body: Transition
     db.commit()
     db.refresh(sub)
     return subscription_data(sub)
+
+
+def invoice_data(invoice: m.Invoice):
+    return {"id": str(invoice.id), "invoice_number": invoice.invoice_number,
+            "invoiceNumber": invoice.invoice_number,
+            "customer": invoice.customer.company_name if invoice.customer else "—",
+            "subscription": invoice.subscription.subscription_number if invoice.subscription else "—",
+            "issue_date": invoice.issue_date, "date": invoice.issue_date.isoformat(),
+            "due_date": invoice.due_date, "due": invoice.due_date.isoformat(),
+            "total_amount": invoice.total_amount, "total": invoice.total_amount,
+            "amount_paid": invoice.amount_paid, "balance_due": invoice.balance_due,
+            "status": s.derive_status(invoice).title()}
+
+
+@router.get("/invoices")
+def list_invoices(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    query = db.query(m.Invoice)
+    if user.role == "CUSTOMER":
+        own = customer_of(db, user)
+        query = query.filter(m.Invoice.customer_id == own.id) if own else query.filter(False)
+    return [invoice_data(invoice) for invoice in query.order_by(m.Invoice.issue_date.desc()).all()]
+
+
+@router.post("/billing/run")
+def run_billing(db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    result = s.run_billing(db, date.today(), actor=user)
+    return result
+
+
+@router.post("/invoices/{invoice_id}/confirm")
+def confirm_invoice(invoice_id: UUID, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    invoice = db.get(m.Invoice, invoice_id)
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    s.confirm_invoice(db, invoice, user)
+    db.commit()
+    db.refresh(invoice)
+    return invoice_data(invoice)
+
+
+@router.post("/invoices/{invoice_id}/send")
+def send_invoice(invoice_id: UUID, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    invoice = db.get(m.Invoice, invoice_id)
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    s.send_invoice(db, invoice, user)
+    db.commit()
+    return invoice_data(invoice)
+
+
+@router.get("/payments")
+def list_payments(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    query = db.query(m.Payment)
+    if user.role == "CUSTOMER":
+        own = customer_of(db, user)
+        query = query.filter(m.Payment.customer_id == own.id) if own else query.filter(False)
+    result = []
+    for payment in query.order_by(m.Payment.payment_date.desc()).all():
+        allocation = payment.allocations[0] if payment.allocations else None
+        result.append({"id": str(payment.id), "payment_number": payment.payment_number,
+                       "reference": payment.payment_number, "customer_id": str(payment.customer_id),
+                       "customer": payment.customer.company_name if payment.customer else "—",
+                       "invoice_id": str(allocation.invoice_id) if allocation else None,
+                       "invoice": allocation.invoice.invoice_number if allocation else "Unallocated",
+                       "payment_method": payment.payment_method, "method": payment.payment_method.replace("_", " ").title(),
+                       "amount": payment.amount, "date": payment.payment_date.date().isoformat(),
+                       "notes": payment.notes or "", "note": payment.notes or "", "status": payment.status})
+    return result
+
+
+@router.post("/payments", status_code=201)
+def record_payment(body: PaymentInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    payment_date = datetime.combine(body.payment_date, datetime.min.time(), tzinfo=timezone.utc) if body.payment_date else None
+    payment = s.record_payment(db, user, body.customer_id, body.payment_method, body.amount,
+                               payment_date, body.reference_number, body.notes,
+                               [allocation.model_dump() for allocation in body.allocations])
+    db.commit()
+    db.refresh(payment)
+    return {"id": str(payment.id), "payment_number": payment.payment_number,
+            "amount": payment.amount, "status": payment.status}
