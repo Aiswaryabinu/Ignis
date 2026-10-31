@@ -2,26 +2,32 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: brightloop
-      POSTGRES_PASSWORD: brightloop
-      POSTGRES_DB: brightloop
-    volumes: [pgdata:/var/lib/postgresql/data]
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: subscription_db
+    volumes:
+      - subscription_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U brightloop"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       retries: 10
-    ports: ["5435:5432"]
+    ports:
+  - "5435:5432"
 
   api:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://brightloop:brightloop@db:5432/brightloop
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/subscription_db
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me-at-least-32-bytes}
       ENABLE_SCHEDULER: "true"
       CORS_ORIGINS: '["http://localhost:5173"]'
     depends_on:
-      db: {condition: service_healthy}
-    ports: ["8000:8000"]
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
 
 volumes:
-  pgdata:
+  subscription_pgdata:
+
+
