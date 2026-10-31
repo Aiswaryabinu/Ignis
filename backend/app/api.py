@@ -2,6 +2,8 @@ from uuid import UUID, uuid4
 from decimal import Decimal
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
+import hashlib
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
@@ -28,6 +30,15 @@ class Registration(Credentials):
 
 class StaffInput(Registration):
     pass
+
+
+class ResetInput(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class EmailInput(BaseModel):
+    email: EmailStr
 
 
 class CustomerInput(BaseModel):
@@ -159,6 +170,51 @@ def register(body: Registration, request: Request, db: Session = Depends(get_db)
 @router.get("/auth/me")
 def get_me(user: m.User = Depends(current_user)):
     return public_user(user)
+
+
+@router.post("/auth/forgot-password")
+def forgot_password(body: EmailInput, request: Request, db: Session = Depends(get_db)):
+    ip = client_ip(request)
+    key = f"reset:{body.email.lower()}:{ip}"
+    limiter.check(key, config.RESET_MAX_REQUESTS, config.LOGIN_WINDOW_SECONDS)
+    limiter.hit(key, config.LOGIN_WINDOW_SECONDS)
+    user = db.query(m.User).filter(m.User.email == body.email.lower()).first()
+    response = {"message": "If an account exists for that address, a reset link will be sent."}
+    if not user:
+        return response
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    db.query(m.PasswordResetToken).filter(m.PasswordResetToken.user_id == user.id,
+        m.PasswordResetToken.used_at.is_(None)).update({"used_at": now})
+    db.add(m.PasswordResetToken(user_id=user.id, token_hash=token_hash, expires_at=now + timedelta(hours=1)))
+    s.outbox(db, "auth.password_reset", "user", user.id,
+             {"to": user.email, "name": user.full_name or user.email,
+              "link": f"{config.APP_BASE_URL}/auth/reset-password?token={token}"})
+    db.commit()
+    if config.DEV_RETURN_TOKENS:
+        response["reset_token"] = token
+    return response
+
+
+@router.post("/auth/reset-password")
+def reset_password(body: ResetInput, db: Session = Depends(get_db)):
+    problems = password_problems(body.password)
+    if problems:
+        raise HTTPException(422, "Password must contain " + ", ".join(problems))
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    token = db.query(m.PasswordResetToken).filter(m.PasswordResetToken.token_hash == token_hash,
+        m.PasswordResetToken.used_at.is_(None), m.PasswordResetToken.expires_at > now).first()
+    if not token:
+        raise HTTPException(400, "Reset link is invalid or expired")
+    user = db.get(m.User, token.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(400, "Reset link is invalid or expired")
+    user.password_hash = hash_password(body.password)
+    token.used_at = now
+    db.commit()
+    return {"message": "Password updated. Please sign in with your new password."}
 
 
 @router.get("/users")

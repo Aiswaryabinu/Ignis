@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
@@ -178,6 +178,8 @@ function SignUpPage() {
 }
 
 function ForgotPasswordPage() {
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   return (
     <div className="auth-page">
       <div className="auth-panel">
@@ -191,13 +193,26 @@ function ForgotPasswordPage() {
           <h1>Forgot password?</h1>
         </div>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={async (event) => {
+          event.preventDefault();
+          setMessage('');
+          setError('');
+          const form = new FormData(event.currentTarget);
+          try {
+            const { data } = await apiClient.post('/auth/forgot-password', { email: form.get('email') });
+            setMessage(data.reset_token ? `Development reset token: ${data.reset_token}` : data.message);
+          } catch (err) {
+            setError(err.response?.data?.detail || 'Could not request a reset link.');
+          }
+        }}>
           <label className="field-group">
             <span>Email address</span>
-            <input type="email" defaultValue="admin@brightloop.io" />
+            <input name="email" type="email" autoComplete="email" required />
           </label>
 
           <button type="submit" className="primary-button">Send reset link</button>
+          {message && <p role="status">{message}</p>}
+          {error && <p role="alert">{error}</p>}
 
           <p className="auth-link-row">
             Back to <a href="/auth/signin">Sign in</a>
@@ -208,6 +223,33 @@ function ForgotPasswordPage() {
   );
 }
 
+function ResetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const token = searchParams.get('token') || '';
+  return <div className="auth-page"><div className="auth-panel">
+    <div className="auth-brand"><div className="brand-badge">B</div><span>brightloop</span></div>
+    <div className="auth-header"><p>Secure your account</p><h1>Choose a new password</h1></div>
+    <form className="auth-form" onSubmit={async (event) => {
+      event.preventDefault(); setError(''); setMessage('');
+      const form = new FormData(event.currentTarget);
+      if (form.get('password') !== form.get('confirm_password')) { setError('Passwords do not match.'); return; }
+      try {
+        const { data } = await apiClient.post('/auth/reset-password', { token, password: form.get('password') });
+        setMessage(data.message);
+        window.setTimeout(() => navigate('/auth/signin', { replace: true }), 1200);
+      } catch (err) { setError(err.response?.data?.detail || 'Could not reset password.'); }
+    }}>
+      <label className="field-group"><span>New password</span><input name="password" type="password" minLength="9" autoComplete="new-password" required /></label>
+      <label className="field-group"><span>Confirm password</span><input name="confirm_password" type="password" minLength="9" autoComplete="new-password" required /></label>
+      <button type="submit" className="primary-button" disabled={!token}>Update password</button>
+      {message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}
+    </form>
+  </div></div>;
+}
+
 export function AppRouter() {
   return (
     <Routes>
@@ -215,6 +257,7 @@ export function AppRouter() {
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/signup" element={<SignUpPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
       <Route
         path="/dashboard"
