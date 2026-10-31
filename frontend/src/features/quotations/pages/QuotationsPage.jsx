@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const quotations = [
   {
@@ -40,38 +41,13 @@ function getInitials(name) {
 }
 
 export function QuotationsPage() {
-  const [drawerMode, setDrawerMode] = useState(null);
-  const [selectedQuote, setSelectedQuote] = useState(null);
-
-  const isOpen = drawerMode !== null;
-
-  useEffect(() => {
-    const mainPanel = document.querySelector('.main-panel');
-    if (!mainPanel) return;
-
-    if (isOpen) {
-      mainPanel.classList.add('drawer-push');
-    } else {
-      mainPanel.classList.remove('drawer-push');
-    }
-
-    return () => mainPanel.classList.remove('drawer-push');
-  }, [isOpen]);
-
-  function openCreate() {
-    setSelectedQuote(null);
-    setDrawerMode('create');
-  }
-
-  function openDetail(quote) {
-    setSelectedQuote(quote);
-    setDrawerMode('detail');
-  }
-
-  function closeDrawer() {
-    setDrawerMode(null);
-    setSelectedQuote(null);
-  }
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All statuses');
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const visibleQuotations = useMemo(() => quotations.filter((quote) => (
+    `${quote.template} ${quote.plan}`.toLowerCase().includes(query.toLowerCase())
+    && (status === 'All statuses' || quote.status === status)
+  )), [query, status]);
 
   return (
     <AppShell
@@ -79,181 +55,46 @@ export function QuotationsPage() {
       description="Start offers from a template with plan and product lines ready."
       breadcrumb="Brightloop / Quotations"
       activeNav="Quotations"
-      primaryAction={
-        <button className="primary-action" type="button" onClick={openCreate}>
-          + New template
-        </button>
-      }
+      primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ New template</button>}
       secondaryAction={<button className="secondary-action">Export</button>}
     >
-      <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
-        {drawerMode === 'create' && (
-          <>
-            <div className="drawer-header">
-              <div className="drawer-title-group">
-                <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">New template</h2>
-              </div>
-              <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            <div className="drawer-divider" />
-            <p className="drawer-subtitle">Create a reusable quotation template for your sales team.</p>
-
-            <form
-              className="drawer-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                closeDrawer();
-              }}
-            >
-              <label className="drawer-field">
-                <span className="drawer-field-label">Template name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Retail Starter Pack" />
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Plan</span>
-                <select className="drawer-input" defaultValue="Starter Monthly">
-                  <option>Starter Monthly</option>
-                  <option>Scale Annual</option>
-                  <option>Secure Weekly</option>
-                </select>
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Lines</span>
-                <input type="text" className="drawer-input" placeholder="CloudDesk Pro × 5" />
-              </label>
-
-              <label className="drawer-field">
-                <span className="drawer-field-label">Valid for</span>
-                <input type="text" className="drawer-input" placeholder="30 days" />
-              </label>
-
-              <div className="drawer-actions">
-                <button type="submit" className="drawer-save-btn">Save</button>
-                <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Cancel</button>
-              </div>
-            </form>
-          </>
-        )}
-
-        {drawerMode === 'detail' && selectedQuote && (
-          <>
-            <div className="drawer-detail-header">
-              <div className="drawer-detail-avatar">{getInitials(selectedQuote.template)}</div>
-              <div className="drawer-detail-title-group">
-                <span className="drawer-eyebrow">Template</span>
-                <h2 className="drawer-title">{selectedQuote.template}</h2>
-                <span className={`status-pill ${selectedQuote.status === 'Active' ? 'success' : 'warning'}`} style={{ marginTop: '6px', display: 'inline-flex' }}>
-                  <span className="dot" />
-                  {selectedQuote.status}
-                </span>
-              </div>
-              <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            <div className="drawer-divider" />
-
-            <div className="drawer-stats-row">
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.plan}</span>
-                <span className="drawer-stat-label">Plan</span>
-              </div>
-              <div className="drawer-stat-divider" />
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.validFor}</span>
-                <span className="drawer-stat-label">Valid</span>
-              </div>
-              <div className="drawer-stat-divider" />
-              <div className="drawer-stat">
-                <span className="drawer-stat-value">{selectedQuote.lines}</span>
-                <span className="drawer-stat-label">Lines</span>
-              </div>
-            </div>
-
-            <div className="drawer-divider" />
-
-            <div className="drawer-detail-body">
-              <div className="drawer-detail-section-label">Template details</div>
-
-              <div className="drawer-detail-grid">
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Template</span>
-                  <span className="drawer-detail-val">{selectedQuote.template}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Plan</span>
-                  <span className="drawer-detail-val">{selectedQuote.plan}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Lines</span>
-                  <span className="drawer-detail-val">{selectedQuote.lines}</span>
-                </div>
-                <div className="drawer-detail-item">
-                  <span className="drawer-detail-key">Valid for</span>
-                  <span className="drawer-detail-val">{selectedQuote.validFor}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit template</button>
-              <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
-            </div>
-          </>
-        )}
-      </aside>
-
-      <div className="customers-layout">
-        <div className="customers-list-panel">
-          <div className="table-toolbar">
-            <div className="search-box">Search quotations...</div>
-            <div className="filter-select">All statuses ⌄</div>
-          </div>
-
-          <div className="data-card">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Template</th>
-                  <th>Plan</th>
-                  <th>Lines</th>
-                  <th>Valid for</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotations.map((quote) => (
-                  <tr
-                    key={quote.id}
-                    className={`customer-row ${selectedQuote?.id === quote.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}
-                    onClick={() => openDetail(quote)}
-                  >
-                    <td className="customer-name">{quote.template}</td>
-                    <td>{quote.plan}</td>
-                    <td>{quote.lines}</td>
-                    <td>{quote.validFor}</td>
-                    <td>
-                      <span className={`status-pill ${quote.status === 'Active' ? 'success' : 'warning'}`}>
-                        <span className="dot" />
-                        {quote.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="table-footer">Showing 3 of 3 records</div>
-          </div>
-        </div>
+      <div className="table-toolbar">
+        <input className="table-search" type="search" placeholder="Search quotations..." aria-label="Search quotations" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select className="table-filter" aria-label="Filter quotations by status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All statuses</option><option>Active</option><option>Draft</option></select>
       </div>
+
+      <div className="data-card">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Template</th>
+              <th>Plan</th>
+              <th>Lines</th>
+              <th>Valid for</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleQuotations.map((quote) => (
+              <tr key={quote.template}>
+                <td className="customer-name">{quote.template}</td>
+                <td>{quote.plan}</td>
+                <td>{quote.lines}</td>
+                <td>{quote.validFor}</td>
+                <td>
+                  <span className={`status-pill ${quote.status === 'Active' ? 'success' : 'warning'}`}>
+                    <span className="dot" />
+                    {quote.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="table-footer">Showing {visibleQuotations.length} of {quotations.length} records</div>
+      </div>
+      <Drawer title="New template" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer"><form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}><label>Template name<input required /></label><label>Plan<select defaultValue="Business Monthly"><option>Business Monthly</option><option>Scale Annual</option><option>Secure Weekly</option><option>Starter Monthly</option></select></label><label>Lines<input /></label><label>Valid for<input /></label><button className="primary-action drawer-submit" type="submit">Save</button></form></Drawer>
     </AppShell>
   );
 }

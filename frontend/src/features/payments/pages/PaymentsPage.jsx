@@ -12,6 +12,7 @@ const payments = [
 export function PaymentsPage() {
   const [query, setQuery] = useState('');
   const [isRecordOpen, setRecordOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
   const filteredPayments = payments.filter((payment) => [payment.reference, payment.invoice, payment.note].some((value) => value.toLowerCase().includes(query.toLowerCase())));
 
   return (
@@ -20,10 +21,13 @@ export function PaymentsPage() {
       <div className="data-card payment-card">
         <table className="data-table payment-table">
           <thead><tr><th>Reference</th><th>Invoice</th><th>Method</th><th className="amount-column">Amount</th><th>Date</th><th>Note</th></tr></thead>
-          <tbody>{filteredPayments.map((payment) => <tr key={payment.reference}><td className="table-link">{payment.reference}</td><td>{payment.invoice}</td><td>{payment.method}</td><td className="amount-column">{payment.amount}</td><td>{payment.date}</td><td>{payment.note}</td></tr>)}</tbody>
+          <tbody>{filteredPayments.map((payment) => <tr key={payment.reference}><td><button className="table-link" type="button" onClick={() => setSelectedPayment(payment)}>{payment.reference}</button></td><td>{payment.invoice}</td><td>{payment.method}</td><td className="amount-column">{payment.amount}</td><td>{payment.date}</td><td>{payment.note}</td></tr>)}</tbody>
         </table>
         <div className="table-footer">Showing {filteredPayments.length} of {payments.length} records</div>
       </div>
+      <Drawer title={selectedPayment?.reference || 'Payment'} isOpen={Boolean(selectedPayment)} onClose={() => setSelectedPayment(null)} className="payment-detail-drawer">
+        {selectedPayment && <dl className="detail-list"><div><dt>Reference</dt><dd>{selectedPayment.reference}</dd></div><div><dt>Invoice</dt><dd>{selectedPayment.invoice}</dd></div><div><dt>Method</dt><dd>{selectedPayment.method}</dd></div><div><dt>Amount</dt><dd>{selectedPayment.amount}</dd></div><div><dt>Date</dt><dd>{selectedPayment.date}</dd></div><div><dt>Note</dt><dd>{selectedPayment.note}</dd></div></dl>}
+      </Drawer>
       <Drawer title="Record payment" isOpen={isRecordOpen} onClose={() => setRecordOpen(false)} className="form-drawer">
         <form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setRecordOpen(false); }}>
           <label>Invoice<select defaultValue="INV-1052"><option>INV-1052</option><option>INV-1043</option><option>INV-1044</option></select></label>

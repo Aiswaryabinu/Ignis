@@ -943,7 +943,7 @@ button, input, select {
 .table-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   margin: 18px 0 16px;
 }
@@ -958,6 +958,30 @@ button, input, select {
   align-items: center;
   color: #7890a3;
   padding: 0 14px;
+}
+
+.table-search,
+.table-filter {
+  min-height: 44px;
+  border: 1px solid rgba(15, 58, 74, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #233f50;
+  padding: 0 12px;
+}
+
+.table-search {
+  width: 274px;
+}
+
+.table-filter {
+  min-width: 126px;
+}
+
+.table-search:focus,
+.table-filter:focus {
+  outline: 3px solid rgba(45, 135, 219, 0.16);
+  border-color: var(--color-primary);
 }
 
 .invoice-toolbar {
@@ -1020,7 +1044,7 @@ button, input, select {
 }
 
 .invoice-number {
-  color: #0d78bd !important;
+  color: var(--color-link) !important;
   font-weight: 700;
 }
 
@@ -1035,7 +1059,7 @@ button, input, select {
 }
 
 .table-link {
-  color: #0d78bd !important;
+  color: var(--color-link) !important;
   font-weight: 700;
   border: 0;
   background: transparent;
@@ -1043,6 +1067,14 @@ button, input, select {
   font: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: rgba(13, 120, 189, 0.045);
 }
 
 .drawer-overlay {
@@ -1130,6 +1162,52 @@ button, input, select {
 }
 
 .invoice-detail-list dd {
+  margin: 0;
+  color: #153247;
+}
+
+.discount-detail-drawer > .status-pill {
+  margin-bottom: 18px;
+}
+
+.discount-detail-list {
+  margin: 0;
+}
+
+.discount-detail-list div {
+  display: grid;
+  grid-template-columns: 125px 1fr;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.discount-detail-list dt {
+  color: #6b8597;
+}
+
+.discount-detail-list dd {
+  margin: 0;
+  color: #153247;
+}
+
+.detail-list {
+  margin: 0;
+}
+
+.detail-list div {
+  display: grid;
+  grid-template-columns: 125px 1fr;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-list dt {
+  color: #6b8597;
+}
+
+.detail-list dd {
   margin: 0;
   color: #153247;
 }
@@ -1257,7 +1335,7 @@ button, input, select {
 
 .customer-name,
 .product-name {
-  color: #0d5d88 !important;
+  color: var(--color-link) !important;
   font-weight: 700;
 }
 
@@ -1654,6 +1732,8 @@ button, input, select {
 
   .invoice-search,
   .invoice-filter,
+  .table-search,
+  .table-filter,
   .discount-search,
   .discount-filter,
   .payment-search {
@@ -1661,6 +1741,16 @@ button, input, select {
   }
 
   .invoice-detail-list div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .discount-detail-list div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .detail-list div {
     grid-template-columns: 1fr;
     gap: 5px;
   }
