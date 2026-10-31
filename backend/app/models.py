@@ -321,6 +321,7 @@ class DiscountProduct(Base):
     id: Mapped[uuid.UUID] = pk()
     discount_id = fk("discounts.id", ondelete="CASCADE")
     product_id = fk("products.id", ondelete="CASCADE")
+    product = relationship("Product")
     __table_args__ = (UniqueConstraint("discount_id", "product_id"),)
 
 # ---------------- Invoices ----------------

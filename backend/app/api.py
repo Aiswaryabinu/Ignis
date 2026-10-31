@@ -83,6 +83,20 @@ class PaymentInput(BaseModel):
     allocations: list[AllocationInput] = Field(min_length=1)
 
 
+class DiscountInput(BaseModel):
+    code: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=255)
+    discount_type: Literal["FIXED", "PERCENTAGE"]
+    value: Decimal = Field(gt=Decimal("0"))
+    min_purchase: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    min_quantity: int = Field(default=1, ge=1)
+    start_date: date
+    end_date: date | None = None
+    usage_limit: int | None = Field(default=None, ge=1)
+    scope: Literal["PRODUCT", "SUBSCRIPTION"] = "SUBSCRIPTION"
+    product_id: UUID | None = None
+
+
 def public_user(user: m.User):
     roles = {"ADMIN": "Admin", "STAFF": "Staff", "CUSTOMER": "Customer"}
     return {"id": str(user.id), "email": user.email, "name": user.full_name or user.email,
@@ -428,3 +442,56 @@ def dashboard_report(date_from: date | None = None, date_to: date | None = None,
         own = customer_of(db, user)
         customer_id = own.id if own else UUID(int=0)
     return summary(db, date.today(), date_from, date_to, customer_id, plan_id)
+
+
+def discount_data(discount: m.Discount):
+    now = datetime.now(timezone.utc)
+    if not discount.is_active or (discount.usage_limit is not None and discount.usage_count >= discount.usage_limit):
+        status = "Inactive"
+    elif discount.start_date > now:
+        status = "Draft"
+    elif discount.end_date and discount.end_date < now:
+        status = "Expired"
+    else:
+        status = "Active"
+    products = [row.product.name for row in discount.products if row.product]
+    return {"id": str(discount.id), "code": discount.code or "", "name": discount.name,
+            "discount_type": discount.discount_type, "type": discount.discount_type.title(),
+            "value": discount.value, "formatted_value": f"{discount.value}%" if discount.discount_type == "PERCENTAGE" else f"₹{discount.value:,.2f}",
+            "min_purchase": discount.min_purchase, "min_quantity": discount.min_quantity,
+            "minimum": f"₹{discount.min_purchase:,.2f}" if discount.min_purchase else f"{discount.min_quantity} units",
+            "start_date": discount.start_date.date(), "end_date": discount.end_date.date() if discount.end_date else None,
+            "valid": f"{discount.start_date:%d %b %Y} - {discount.end_date:%d %b %Y}" if discount.end_date else f"From {discount.start_date:%d %b %Y}",
+            "usage_count": discount.usage_count, "usage_limit": discount.usage_limit,
+            "used": f"{discount.usage_count} / {discount.usage_limit}" if discount.usage_limit else str(discount.usage_count),
+            "scope": discount.scope, "applies_to": ", ".join(products) or "All subscriptions",
+            "status": status}
+
+
+@router.get("/discounts")
+def list_discounts(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    return [discount_data(item) for item in db.query(m.Discount).order_by(m.Discount.created_at.desc()).all()]
+
+
+@router.post("/discounts", status_code=201)
+def create_discount(body: DiscountInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    if body.discount_type == "PERCENTAGE" and body.value > 100:
+        raise HTTPException(422, "Percentage discounts cannot exceed 100")
+    if body.end_date and body.end_date < body.start_date:
+        raise HTTPException(422, "End date must be on or after start date")
+    if body.scope == "PRODUCT" and not body.product_id:
+        raise HTTPException(422, "Choose a product for product-specific discounts")
+    product = db.get(m.Product, body.product_id) if body.product_id else None
+    if body.product_id and not product:
+        raise HTTPException(404, "Product not found")
+    values = body.model_dump(exclude={"product_id"})
+    values["start_date"] = datetime.combine(body.start_date, datetime.min.time(), tzinfo=timezone.utc)
+    values["end_date"] = datetime.combine(body.end_date, datetime.max.time(), tzinfo=timezone.utc) if body.end_date else None
+    values["created_by"] = user.id
+    discount = m.Discount(**values)
+    if product:
+        discount.products.append(m.DiscountProduct(product_id=product.id))
+    db.add(discount)
+    db.commit()
+    db.refresh(discount)
+    return discount_data(discount)
