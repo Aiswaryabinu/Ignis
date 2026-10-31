@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage.jsx';
+import { DiscountsPage } from '../features/discounts/pages/DiscountsPage.jsx';
+import { PaymentsPage } from '../features/payments/pages/PaymentsPage.jsx';
 import { PlansPage } from '../features/plans/pages/PlansPage.jsx';
 import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage.jsx';
@@ -240,6 +242,9 @@ export function AppRouter() {
           </RequireRole>
         }
       />
+
+      <Route path="/discounts" element={<RequireRole allowedRoles={['Admin', 'Staff']}><DiscountsPage /></RequireRole>} />
+      <Route path="/payments" element={<RequireRole allowedRoles={['Admin', 'Staff']}><PaymentsPage /></RequireRole>} />
 
       <Route
         path="/settings"

@@ -586,6 +586,187 @@ button, input, select {
   border-color: rgba(215, 47, 47, 0.12);
 }
 
+.table-link {
+  color: #0d78bd !important;
+  font-weight: 700;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(15, 25, 30, 0.58);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.side-drawer {
+  width: min(460px, 100%);
+  min-height: 100%;
+  overflow: auto;
+  background: #ffffff;
+  padding: 28px 30px;
+  box-shadow: -16px 0 36px rgba(15, 58, 74, 0.16);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.drawer-header h2 {
+  margin: 0;
+  color: #123a4b;
+  font-size: 1.55rem;
+}
+
+.drawer-close,
+.drawer-actions .secondary-action {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: #142a38;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invoice-detail-drawer > .status-pill {
+  margin-bottom: 18px;
+}
+
+.invoice-status-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.invoice-status-tabs button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: #526d7d;
+  background: #e9eef2;
+  cursor: pointer;
+}
+
+.invoice-status-tabs button.selected {
+  background: var(--color-primary);
+  color: white;
+  font-weight: 700;
+}
+
+.invoice-detail-list {
+  margin: 0;
+}
+
+.invoice-detail-list div {
+  display: grid;
+  grid-template-columns: 175px 1fr;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.invoice-detail-list dt {
+  color: #6b8597;
+}
+
+.invoice-detail-list dd {
+  margin: 0;
+  color: #153247;
+}
+
+.drawer-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.drawer-actions .primary-action {
+  padding: 12px 20px;
+}
+
+.invoice-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: #0f3a4a;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 13px 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.discount-toolbar,
+.payment-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 16px;
+}
+
+.discount-search,
+.discount-filter,
+.payment-search {
+  min-height: 44px;
+  border: 1px solid rgba(15, 58, 74, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0 12px;
+  color: #233f50;
+}
+
+.discount-search { width: 274px; }
+.discount-filter { min-width: 126px; }
+.payment-search { width: 274px; }
+
+.discount-table th,
+.discount-table td,
+.payment-table th,
+.payment-table td {
+  padding: 17px 18px;
+}
+
+.drawer-form {
+  display: grid;
+  gap: 15px;
+}
+
+.drawer-form label {
+  display: grid;
+  gap: 7px;
+  color: #6b8597;
+  font-size: 0.86rem;
+}
+
+.drawer-form input,
+.drawer-form select {
+  min-height: 43px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #193449;
+}
+
+.drawer-submit {
+  justify-self: start;
+  margin-top: 6px;
+}
+
 .search-box {
   flex: 1;
   max-width: 480px;
@@ -705,7 +886,9 @@ button, input, select {
 
   .page-header-row,
   .table-toolbar,
-  .invoice-toolbar {
+  .invoice-toolbar,
+  .discount-toolbar,
+  .payment-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
@@ -740,7 +923,30 @@ button, input, select {
   }
 
   .invoice-search,
-  .invoice-filter {
+  .invoice-filter,
+  .discount-search,
+  .discount-filter,
+  .payment-search {
     width: 100%;
+  }
+
+  .invoice-detail-list div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .drawer-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .drawer-overlay:has(.invoice-detail-drawer) {
+    background: #ffffff;
+  }
+
+  .invoice-detail-drawer {
+    width: 100%;
+    padding: 30px;
   }
 }
