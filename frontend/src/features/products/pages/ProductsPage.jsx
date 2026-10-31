@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
 const products = [
   {
@@ -43,8 +44,10 @@ function getInitials(name) {
 }
 
 export function ProductsPage() {
+  const [productRows, setProductRows] = useState(products);
   const [drawerMode, setDrawerMode] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const exportProducts = () => downloadCsv('products.csv', productRows);
 
   const isOpen = drawerMode !== null;
 
@@ -87,7 +90,7 @@ export function ProductsPage() {
           + Create
         </button>
       }
-      secondaryAction={<button className="secondary-action" type="button">Export</button>}
+      secondaryAction={<button className="secondary-action" type="button" onClick={exportProducts}>Export</button>}
     >
       <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
         {drawerMode === 'create' && (
@@ -95,7 +98,7 @@ export function ProductsPage() {
             <div className="drawer-header">
               <div className="drawer-title-group">
                 <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">Create Product</h2>
+                <h2 className="drawer-title">{selectedProduct ? 'Edit Product' : 'Create Product'}</h2>
               </div>
               <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
                 ✕
@@ -109,17 +112,28 @@ export function ProductsPage() {
               className="drawer-form"
               onSubmit={(e) => {
                 e.preventDefault();
+                const values = new FormData(e.currentTarget);
+                const next = {
+                  id: selectedProduct?.id || Date.now(),
+                  name: values.get('name'),
+                  type: values.get('type'),
+                  sales: values.get('sales'),
+                  cost: values.get('cost'),
+                  variants: values.get('variants') || 'None',
+                  status: selectedProduct?.status || 'Active',
+                };
+                setProductRows((current) => selectedProduct ? current.map((item) => item.id === selectedProduct.id ? next : item) : [...current, next]);
                 closeDrawer();
               }}
             >
               <label className="drawer-field">
                 <span className="drawer-field-label">Name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. CloudDesk Pro" />
+                <input name="name" type="text" className="drawer-input" defaultValue={selectedProduct?.name || ''} placeholder="e.g. CloudDesk Pro" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Type</span>
-                <select className="drawer-input" defaultValue="Software">
+                <select name="type" className="drawer-input" defaultValue={selectedProduct?.type || 'Software'}>
                   <option>Software</option>
                   <option>Add-on</option>
                   <option>Hardware</option>
@@ -128,17 +142,17 @@ export function ProductsPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Sales price</span>
-                <input type="text" className="drawer-input" placeholder="₹7,500" />
+                <input name="sales" type="text" className="drawer-input" defaultValue={selectedProduct?.sales || ''} placeholder="₹7,500" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Cost price</span>
-                <input type="text" className="drawer-input" placeholder="₹3,100" />
+                <input name="cost" type="text" className="drawer-input" defaultValue={selectedProduct?.cost || ''} placeholder="₹3,100" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Variants</span>
-                <input type="text" className="drawer-input" placeholder="Brand: Odoo (+₹560)" />
+                <input name="variants" type="text" className="drawer-input" defaultValue={selectedProduct?.variants || ''} placeholder="Brand: Odoo (+₹560)" />
               </label>
 
               <div className="drawer-actions">
@@ -215,7 +229,7 @@ export function ProductsPage() {
             </div>
 
             <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit Product</button>
+              <button type="button" className="drawer-save-btn" onClick={() => setDrawerMode('create')}>Edit Product</button>
               <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
             </div>
           </>
@@ -242,7 +256,7 @@ export function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
+                {productRows.map((product) => (
                   <tr
                     key={product.id}
                     className={`customer-row ${selectedProduct?.id === product.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}

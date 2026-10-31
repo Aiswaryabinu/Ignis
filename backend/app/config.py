@@ -1,10 +1,15 @@
+import json
 import os
 def _flag(name, default): return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://brightloop:brightloop@localhost:5432/brightloop")
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me-please-32-bytes-min")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "720"))
-CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+_cors_value = os.getenv("CORS_ORIGINS", "*").strip()
+try:
+    CORS_ORIGINS = json.loads(_cors_value) if _cors_value.startswith("[") else [o.strip() for o in _cors_value.split(",") if o.strip()]
+except json.JSONDecodeError:
+    CORS_ORIGINS = [o.strip() for o in _cors_value.split(",") if o.strip()]
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()      # "production" turns on the start-up safety checks
 # Reset/verify tokens are returned in API responses only when this is on (default: on in development, off in production).
 DEV_RETURN_TOKENS = _flag("DEV_RETURN_TOKENS", "0" if ENVIRONMENT == "production" else "1")

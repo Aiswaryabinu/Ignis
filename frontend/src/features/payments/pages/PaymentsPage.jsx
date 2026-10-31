@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
 import { Drawer } from '../../../components/ui/Drawer.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
 const payments = [
   { reference: 'PAY-501', invoice: 'INV-1044', method: 'UPI', amount: '₹8,850', date: '03 Oct 2026', note: 'Matched to bank ref' },
@@ -13,9 +14,10 @@ export function PaymentsPage() {
   const [query, setQuery] = useState('');
   const [isRecordOpen, setRecordOpen] = useState(false);
   const filteredPayments = payments.filter((payment) => [payment.reference, payment.invoice, payment.note].some((value) => value.toLowerCase().includes(query.toLowerCase())));
+  const exportPayments = () => downloadCsv('payments.csv', filteredPayments);
 
   return (
-    <AppShell title="Payments" description="Every payment against its invoice." breadcrumb="Brightloop / Payments" activeNav="payments" primaryAction={<button className="primary-action" type="button" onClick={() => setRecordOpen(true)}>+ Record payment</button>} secondaryAction={<button className="secondary-action" type="button">Export</button>}>
+    <AppShell title="Payments" description="Every payment against its invoice." breadcrumb="Brightloop / Payments" activeNav="payments" primaryAction={<button className="primary-action" type="button" onClick={() => setRecordOpen(true)}>+ Record payment</button>} secondaryAction={<button className="secondary-action" type="button" onClick={exportPayments}>Export</button>}>
       <div className="payment-toolbar"><input className="payment-search" type="search" placeholder="Search payments..." aria-label="Search payments" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
       <div className="data-card payment-card">
         <table className="data-table payment-table">

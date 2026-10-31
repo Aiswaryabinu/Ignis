@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
 const quotations = [
   {
@@ -40,8 +41,10 @@ function getInitials(name) {
 }
 
 export function QuotationsPage() {
+  const [quotationRows, setQuotationRows] = useState(quotations);
   const [drawerMode, setDrawerMode] = useState(null);
   const [selectedQuote, setSelectedQuote] = useState(null);
+  const exportQuotations = () => downloadCsv('quotations.csv', quotationRows);
 
   const isOpen = drawerMode !== null;
 
@@ -84,7 +87,7 @@ export function QuotationsPage() {
           + New template
         </button>
       }
-      secondaryAction={<button className="secondary-action">Export</button>}
+      secondaryAction={<button className="secondary-action" onClick={exportQuotations}>Export</button>}
     >
       <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
         {drawerMode === 'create' && (
@@ -92,7 +95,7 @@ export function QuotationsPage() {
             <div className="drawer-header">
               <div className="drawer-title-group">
                 <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">New template</h2>
+                <h2 className="drawer-title">{selectedQuote ? 'Edit template' : 'New template'}</h2>
               </div>
               <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
                 ✕
@@ -106,17 +109,20 @@ export function QuotationsPage() {
               className="drawer-form"
               onSubmit={(e) => {
                 e.preventDefault();
+                const values = new FormData(e.currentTarget);
+                const next = { ...selectedQuote, template: values.get('template'), plan: values.get('plan'), lines: values.get('lines'), validFor: values.get('validFor'), status: selectedQuote?.status || 'Draft' };
+                setQuotationRows((current) => selectedQuote ? current.map((item) => item.id === selectedQuote.id ? next : item) : [...current, { ...next, id: Date.now() }]);
                 closeDrawer();
               }}
             >
               <label className="drawer-field">
                 <span className="drawer-field-label">Template name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Retail Starter Pack" />
+                <input name="template" type="text" className="drawer-input" defaultValue={selectedQuote?.template || ''} placeholder="e.g. Retail Starter Pack" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Plan</span>
-                <select className="drawer-input" defaultValue="Starter Monthly">
+                <select name="plan" className="drawer-input" defaultValue={selectedQuote?.plan || 'Starter Monthly'}>
                   <option>Starter Monthly</option>
                   <option>Scale Annual</option>
                   <option>Secure Weekly</option>
@@ -125,12 +131,12 @@ export function QuotationsPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Lines</span>
-                <input type="text" className="drawer-input" placeholder="CloudDesk Pro × 5" />
+                <input name="lines" type="text" className="drawer-input" defaultValue={selectedQuote?.lines || ''} placeholder="CloudDesk Pro × 5" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Valid for</span>
-                <input type="text" className="drawer-input" placeholder="30 days" />
+                <input name="validFor" type="text" className="drawer-input" defaultValue={selectedQuote?.validFor || ''} placeholder="30 days" required />
               </label>
 
               <div className="drawer-actions">
@@ -203,7 +209,7 @@ export function QuotationsPage() {
             </div>
 
             <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit template</button>
+              <button type="button" className="drawer-save-btn" onClick={() => setDrawerMode('create')}>Edit template</button>
               <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
             </div>
           </>
@@ -229,7 +235,7 @@ export function QuotationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {quotations.map((quote) => (
+                {quotationRows.map((quote) => (
                   <tr
                     key={quote.id}
                     className={`customer-row ${selectedQuote?.id === quote.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}

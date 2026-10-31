@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
 const plans = [
   {
@@ -61,8 +62,10 @@ function getInitials(name) {
 }
 
 export function PlansPage() {
+  const [planRows, setPlanRows] = useState(plans);
   const [drawerMode, setDrawerMode] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const exportPlans = () => downloadCsv('subscription-plans.csv', plans);
 
   const isOpen = drawerMode !== null;
 
@@ -105,7 +108,7 @@ export function PlansPage() {
           + Create plan
         </button>
       }
-      secondaryAction={<button className="secondary-action">Export</button>}
+      secondaryAction={<button className="secondary-action" onClick={() => downloadCsv('subscription-plans.csv', planRows)}>Export</button>}
     >
       <aside className={`customer-drawer ${isOpen ? 'customer-drawer--open' : ''}`}>
         {drawerMode === 'create' && (
@@ -113,7 +116,7 @@ export function PlansPage() {
             <div className="drawer-header">
               <div className="drawer-title-group">
                 <span className="drawer-eyebrow">New Record</span>
-                <h2 className="drawer-title">Create plan</h2>
+                <h2 className="drawer-title">{selectedPlan ? 'Edit plan' : 'Create plan'}</h2>
               </div>
               <button type="button" className="drawer-close-btn" onClick={closeDrawer} aria-label="Close">
                 ✕
@@ -127,17 +130,20 @@ export function PlansPage() {
               className="drawer-form"
               onSubmit={(e) => {
                 e.preventDefault();
+                const values = new FormData(e.currentTarget);
+                const next = { ...selectedPlan, plan: values.get('plan'), product: values.get('product'), billing: values.get('billing'), basePrice: values.get('basePrice'), minQty: values.get('minQty'), renewal: values.get('renewal'), status: selectedPlan?.status || 'Draft' };
+                setPlanRows((current) => selectedPlan ? current.map((item) => item.id === selectedPlan.id ? next : item) : [...current, { ...next, id: Date.now() }]);
                 closeDrawer();
               }}
             >
               <label className="drawer-field">
                 <span className="drawer-field-label">Plan name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Growth Monthly" />
+                <input name="plan" type="text" className="drawer-input" defaultValue={selectedPlan?.plan || ''} placeholder="e.g. Growth Monthly" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Product</span>
-                <select className="drawer-input" defaultValue="CloudDesk Pro">
+                <select name="product" className="drawer-input" defaultValue={selectedPlan?.product || 'CloudDesk Pro'}>
                   <option>CloudDesk Pro</option>
                   <option>Analytics Suite</option>
                   <option>SecureVault</option>
@@ -146,7 +152,7 @@ export function PlansPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Billing</span>
-                <select className="drawer-input" defaultValue="Monthly">
+                <select name="billing" className="drawer-input" defaultValue={selectedPlan?.billing || 'Monthly'}>
                   <option>Daily</option>
                   <option>Weekly</option>
                   <option>Monthly</option>
@@ -156,17 +162,17 @@ export function PlansPage() {
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Base price</span>
-                <input type="text" className="drawer-input" placeholder="₹18,500" />
+                <input name="basePrice" type="text" className="drawer-input" defaultValue={selectedPlan?.basePrice || ''} placeholder="₹18,500" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Min. quantity</span>
-                <input type="text" className="drawer-input" placeholder="5" />
+                <input name="minQty" type="text" className="drawer-input" defaultValue={selectedPlan?.minQty || ''} placeholder="5" required />
               </label>
 
               <label className="drawer-field">
                 <span className="drawer-field-label">Renewal</span>
-                <select className="drawer-input" defaultValue="Automatic">
+                <select name="renewal" className="drawer-input" defaultValue={selectedPlan?.renewal || 'Automatic'}>
                   <option>Automatic</option>
                   <option>Manual</option>
                 </select>
@@ -250,7 +256,7 @@ export function PlansPage() {
             </div>
 
             <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit plan</button>
+              <button type="button" className="drawer-save-btn" onClick={() => setDrawerMode('create')}>Edit plan</button>
               <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
             </div>
           </>
@@ -278,7 +284,7 @@ export function PlansPage() {
                 </tr>
               </thead>
               <tbody>
-                {plans.map((item) => (
+                {planRows.map((item) => (
                   <tr
                     key={item.id}
                     className={`customer-row ${selectedPlan?.id === item.id && drawerMode === 'detail' ? 'customer-row--active' : ''}`}

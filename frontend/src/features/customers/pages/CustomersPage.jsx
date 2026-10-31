@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { useCustomers } from '../api/useCustomers.js';
+import apiClient from '../../../lib/apiClient.js';
+import { downloadCsv } from '../../../lib/exportCsv.js';
 
-const customers = [
+const demoCustomers = [
   {
     id: 1,
     name: 'Northwind Traders',
@@ -67,9 +71,26 @@ function getInitials(name) {
 }
 
 export function CustomersPage() {
+  const { data = [], isLoading, isError } = useCustomers();
+  const queryClient = useQueryClient();
+  const exportCustomers = () => downloadCsv('customers.csv', customers.map(({ id, name, email, industry, subscriptions, status }) => ({ id, name, email, industry, subscriptions, status })));
+  const customers = data.map((customer) => ({
+    ...customer,
+    name: customer.name || customer.company_name,
+    email: customer.email || customer.billing_email,
+    contact: customer.contact || customer.contact_person || '—',
+    subscriptions: customer.subscriptions || 0,
+    status: customer.status || (customer.is_active ? 'Active' : 'Inactive'),
+    industry: customer.industry || '—',
+    joined: customer.joined || '—',
+    revenue: customer.revenue || '—',
+  }));
   // drawerMode: null | 'create' | 'detail'
   const [drawerMode, setDrawerMode] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({});
+  const [saveError, setSaveError] = useState('');
 
   const isOpen = drawerMode !== null;
 
@@ -92,12 +113,58 @@ export function CustomersPage() {
 
   function openDetail(customer) {
     setSelectedCustomer(customer);
+    setEditing(false);
     setDrawerMode('detail');
   }
 
   function closeDrawer() {
     setDrawerMode(null);
     setSelectedCustomer(null);
+    setEditing(false);
+    setSaveError('');
+  }
+
+  function startEditing() {
+    setForm({
+      company_name: selectedCustomer.name,
+      contact_person: selectedCustomer.contact || '',
+      billing_email: selectedCustomer.email || '',
+      phone: selectedCustomer.phone || '',
+      industry: selectedCustomer.industry || '',
+      is_active: selectedCustomer.status === 'Active',
+    });
+    setSaveError('');
+    setEditing(true);
+  }
+
+  async function saveCustomer(event) {
+    event.preventDefault();
+    try {
+      await apiClient.put(`/customers/${selectedCustomer.id}`, form);
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setEditing(false);
+      setDrawerMode(null);
+    } catch (requestError) {
+      setSaveError(requestError.response?.data?.detail || 'Unable to save customer.');
+    }
+
+    async function createCustomer(event) {
+      event.preventDefault();
+      const values = new FormData(event.currentTarget);
+      try {
+        await apiClient.post('/customers', {
+          company_name: values.get('company_name'),
+          billing_email: values.get('billing_email') || null,
+          industry: values.get('industry') || null,
+          phone: values.get('phone') || null,
+          is_active: true,
+        });
+        await queryClient.invalidateQueries({ queryKey: ['customers'] });
+        closeDrawer();
+      } catch (requestError) {
+        setSaveError(requestError.response?.data?.detail || 'Unable to create customer.');
+      }
+    }
   }
 
   return (
@@ -112,7 +179,7 @@ export function CustomersPage() {
         </button>
       }
       secondaryAction={
-        <button className="secondary-action" type="button">
+        <button className="secondary-action" type="button" onClick={exportCustomers}>
           Export
         </button>
       }
@@ -136,27 +203,25 @@ export function CustomersPage() {
 
             <form
               className="drawer-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                closeDrawer();
-              }}
+              onSubmit={createCustomer}
             >
               <label className="drawer-field">
                 <span className="drawer-field-label">Full Name</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Acme Corp" />
+                <input name="company_name" type="text" className="drawer-input" placeholder="e.g. Acme Corp" required />
               </label>
               <label className="drawer-field">
                 <span className="drawer-field-label">Email Address</span>
-                <input type="email" className="drawer-input" placeholder="e.g. billing@acme.in" />
+                <input name="billing_email" type="email" className="drawer-input" placeholder="e.g. billing@acme.in" />
               </label>
               <label className="drawer-field">
                 <span className="drawer-field-label">Industry</span>
-                <input type="text" className="drawer-input" placeholder="e.g. Retail, SaaS…" />
+                <input name="industry" type="text" className="drawer-input" placeholder="e.g. Retail, SaaS…" />
               </label>
               <label className="drawer-field">
                 <span className="drawer-field-label">Phone (optional)</span>
-                <input type="tel" className="drawer-input" placeholder="e.g. +91 98765 43210" />
+                <input name="phone" type="tel" className="drawer-input" placeholder="e.g. +91 98765 43210" />
               </label>
+              {saveError && <p className="form-error" role="alert">{saveError}</p>}
               <div className="drawer-actions">
                 <button type="submit" className="drawer-save-btn">Save Customer</button>
                 <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Cancel</button>
@@ -165,7 +230,7 @@ export function CustomersPage() {
           </>
         )}
 
-        {drawerMode === 'detail' && selectedCustomer && (
+        {drawerMode === 'detail' && selectedCustomer && !editing && (
           <>
             {/* Header with avatar */}
             <div className="drawer-detail-header">
@@ -243,10 +308,25 @@ export function CustomersPage() {
 
             {/* Actions */}
             <div className="drawer-actions" style={{ marginTop: 'auto' }}>
-              <button type="button" className="drawer-save-btn">Edit Customer</button>
+              <button type="button" className="drawer-save-btn" onClick={startEditing}>Edit Customer</button>
               <button type="button" className="drawer-cancel-btn" onClick={closeDrawer}>Close</button>
             </div>
           </>
+        )}
+        {drawerMode === 'detail' && selectedCustomer && editing && (
+          <form className="drawer-form" onSubmit={saveCustomer}>
+            <div className="drawer-header">
+              <div className="drawer-title-group"><span className="drawer-eyebrow">Edit record</span><h2 className="drawer-title">Edit Customer</h2></div>
+              <button type="button" className="drawer-close-btn" onClick={() => setEditing(false)} aria-label="Close">✕</button>
+            </div>
+            <label className="drawer-field"><span className="drawer-field-label">Company name</span><input className="drawer-input" value={form.company_name || ''} onChange={(event) => setForm({ ...form, company_name: event.target.value })} required /></label>
+            <label className="drawer-field"><span className="drawer-field-label">Contact person</span><input className="drawer-input" value={form.contact_person || ''} onChange={(event) => setForm({ ...form, contact_person: event.target.value })} /></label>
+            <label className="drawer-field"><span className="drawer-field-label">Email</span><input className="drawer-input" type="email" value={form.billing_email || ''} onChange={(event) => setForm({ ...form, billing_email: event.target.value })} /></label>
+            <label className="drawer-field"><span className="drawer-field-label">Phone</span><input className="drawer-input" value={form.phone || ''} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
+            <label className="drawer-field"><span className="drawer-field-label">Industry</span><input className="drawer-input" value={form.industry || ''} onChange={(event) => setForm({ ...form, industry: event.target.value })} /></label>
+            {saveError && <p className="form-error" role="alert">{saveError}</p>}
+            <div className="drawer-actions"><button type="submit" className="drawer-save-btn">Save changes</button><button type="button" className="drawer-cancel-btn" onClick={() => setEditing(false)}>Cancel</button></div>
+          </form>
         )}
       </aside>
 
@@ -270,7 +350,9 @@ export function CustomersPage() {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((customer) => (
+                {isLoading && <tr><td colSpan="5">Loading customers…</td></tr>}
+                {isError && <tr><td colSpan="5">Unable to load customers. Check that the API is running.</td></tr>}
+                {!isLoading && !isError && customers.map((customer) => (
                   <tr
                     key={customer.id}
                     className={`customer-row ${selectedCustomer?.id === customer.id ? 'customer-row--active' : ''}`}
@@ -290,7 +372,7 @@ export function CustomersPage() {
                 ))}
               </tbody>
             </table>
-            <div className="table-footer">Showing 4 of 4 records</div>
+            <div className="table-footer">Showing {customers.length} records</div>
           </div>
         </div>
       </div>
