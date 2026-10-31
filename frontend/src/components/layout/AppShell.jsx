@@ -29,15 +29,15 @@ export function AppShell({
   const navItems = [
     { label: 'Customers', href: '/customers', icon: Users },
     { label: 'Products', href: '/products', icon: Boxes },
-    { label: 'Subscription Plans', href: '#', icon: Layers3 },
-    { label: 'Quotations', href: '#', icon: FileText },
-    { label: 'Subscriptions', href: '#', icon: BriefcaseBusiness },
-    { label: 'Invoices', href: '#', icon: ReceiptText },
-    { label: 'Discounts', href: '#', icon: Tag },
-    { label: 'Payments', href: '#', icon: CreditCard },
-    { label: 'Reports', href: '#', icon: BarChart3 },
-    { label: 'Overview', href: '#', icon: Grid2x2 },
-    { label: 'Settings', href: '#', icon: Settings },
+    { label: 'Subscription Plans', href: '/plans', icon: Layers3 },
+    { label: 'Quotations', href: '/quotations', icon: FileText },
+    { label: 'Subscriptions', href: '/subscriptions', icon: BriefcaseBusiness },
+    { label: 'Invoices', href: '/invoices', icon: ReceiptText },
+    { label: 'Discounts', href: '/discounts', icon: Tag },
+    { label: 'Payments', href: '/payments', icon: CreditCard },
+    { label: 'Reports', href: '/reports', icon: BarChart3 },
+    { label: 'Overview', href: '/dashboard', icon: Grid2x2 },
+    { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
   return (

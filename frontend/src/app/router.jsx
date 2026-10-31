@@ -2,7 +2,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { CustomersPage } from '../features/customers/pages/CustomersPage.jsx';
+import { PlansPage } from '../features/plans/pages/PlansPage.jsx';
 import { ProductsPage } from '../features/products/pages/ProductsPage.jsx';
+import { QuotationsPage } from '../features/quotations/pages/QuotationsPage.jsx';
+import { SubscriptionsPage } from '../features/subscriptions/pages/SubscriptionsPage.jsx';
 import { useAuth } from './providers.jsx';
 
 function RequireRole({ allowedRoles, children }) {
@@ -169,7 +172,7 @@ function SettingsPage() {
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/customers" replace />} />
+      <Route path="/" element={<Navigate to="/quotations" replace />} />
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/signup" element={<SignUpPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
@@ -202,6 +205,33 @@ export function AppRouter() {
       />
 
       <Route
+        path="/plans"
+        element={
+          <RequireRole allowedRoles={['Admin', 'Staff']}>
+            <PlansPage />
+          </RequireRole>
+        }
+      />
+
+      <Route
+        path="/quotations"
+        element={
+          <RequireRole allowedRoles={['Admin', 'Staff']}>
+            <QuotationsPage />
+          </RequireRole>
+        }
+      />
+
+      <Route
+        path="/subscriptions"
+        element={
+          <RequireRole allowedRoles={['Admin', 'Staff']}>
+            <SubscriptionsPage />
+          </RequireRole>
+        }
+      />
+
+      <Route
         path="/settings"
         element={
           <RequireRole allowedRoles={['Admin']}>
@@ -210,7 +240,7 @@ export function AppRouter() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/customers" replace />} />
+      <Route path="*" element={<Navigate to="/quotations" replace />} />
     </Routes>
   );
 }
