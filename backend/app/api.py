@@ -1,5 +1,7 @@
 from uuid import UUID, uuid4
 from decimal import Decimal
+from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
@@ -36,6 +38,20 @@ class ProductInput(BaseModel):
     sales_price: Decimal = Field(ge=Decimal("0"))
     cost_price: Decimal = Field(ge=Decimal("0"))
     notes: str | None = None
+    is_active: bool = True
+
+
+class PlanInput(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    product_id: UUID | None = None
+    billing_interval: Literal["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]
+    interval_count: int = Field(default=1, ge=1)
+    minimum_quantity: int = Field(default=1, ge=1)
+    price: Decimal = Field(ge=Decimal("0"))
+    start_date: date = Field(default_factory=date.today)
+    end_date: date | None = None
+    allow_renewal: bool = True
     is_active: bool = True
 
 
@@ -154,3 +170,36 @@ def create_product(body: ProductInput, db: Session = Depends(get_db), user: m.Us
     db.commit()
     db.refresh(product)
     return product_data(product)
+
+
+def plan_data(plan: m.SubscriptionPlan):
+    interval = plan.billing_interval.title()
+    return {"id": str(plan.id), "name": plan.name, "plan": plan.name,
+            "product_id": str(plan.product_id) if plan.product_id else None,
+            "product": plan.product.name if plan.product else "—",
+            "billing_interval": plan.billing_interval, "billing": interval,
+            "interval_count": plan.interval_count, "price": plan.price,
+            "basePrice": f"₹{plan.price:,.2f}", "minimum_quantity": plan.minimum_quantity,
+            "minQty": str(plan.minimum_quantity), "allow_renewal": plan.allow_renewal,
+            "renewal": "Automatic" if plan.allow_renewal else "Manual",
+            "is_active": plan.is_active, "status": "Active" if plan.is_active else "Draft"}
+
+
+@router.get("/plans")
+def list_plans(db: Session = Depends(get_db), user: m.User = Depends(current_user)):
+    return [plan_data(plan) for plan in db.query(m.SubscriptionPlan).order_by(m.SubscriptionPlan.name).all()]
+
+
+@router.post("/plans", status_code=201)
+def create_plan(body: PlanInput, db: Session = Depends(get_db), user: m.User = Depends(staff_or_admin)):
+    values = body.model_dump()
+    values["billing_interval"] = values["billing_interval"].upper()
+    if values["product_id"] and not db.get(m.Product, values["product_id"]):
+        raise HTTPException(404, "Product not found")
+    if values["end_date"] and values["end_date"] <= values["start_date"]:
+        raise HTTPException(422, "End date must be after start date")
+    plan = m.SubscriptionPlan(**values)
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return plan_data(plan)
