@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const plans = [
   { name: 'Scale Annual', billed: '₹5,09,760', collected: '₹0', outstanding: '₹5,09,760' },
@@ -11,6 +12,7 @@ const plans = [
 export function ReportsPage() {
   const [period, setPeriod] = useState('This month');
   const [plan, setPlan] = useState('All plans');
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const visiblePlans = useMemo(() => plan === 'All plans' ? plans : plans.filter((item) => item.name === plan), [plan]);
 
   return (
@@ -27,8 +29,11 @@ export function ReportsPage() {
         <div className="metric-card danger-metric"><span>Overdue invoices</span><strong>1</strong></div>
       </div>
       <div className="data-card report-card">
-        <table className="data-table report-table"><thead><tr><th>Plan</th><th className="amount-column">Billed</th><th className="amount-column">Collected</th><th className="amount-column">Outstanding</th></tr></thead><tbody>{visiblePlans.map((item) => <tr key={item.name}><td className="table-link">{item.name}</td><td className="amount-column">{item.billed}</td><td className="amount-column">{item.collected}</td><td className="amount-column">{item.outstanding}</td></tr>)}</tbody></table>
+        <table className="data-table report-table"><thead><tr><th>Plan</th><th className="amount-column">Billed</th><th className="amount-column">Collected</th><th className="amount-column">Outstanding</th></tr></thead><tbody>{visiblePlans.map((item) => <tr key={item.name}><td><button className="table-link" type="button" onClick={() => setSelectedPlan(item)}>{item.name}</button></td><td className="amount-column">{item.billed}</td><td className="amount-column">{item.collected}</td><td className="amount-column">{item.outstanding}</td></tr>)}</tbody></table>
       </div>
+      <Drawer title={selectedPlan?.name || 'Plan'} isOpen={Boolean(selectedPlan)} onClose={() => setSelectedPlan(null)} className="report-detail-drawer">
+        {selectedPlan && <dl className="detail-list"><div><dt>Plan</dt><dd>{selectedPlan.name}</dd></div><div><dt>Billed</dt><dd>{selectedPlan.billed}</dd></div><div><dt>Collected</dt><dd>{selectedPlan.collected}</dd></div><div><dt>Outstanding</dt><dd>{selectedPlan.outstanding}</dd></div></dl>}
+      </Drawer>
     </AppShell>
   );
 }

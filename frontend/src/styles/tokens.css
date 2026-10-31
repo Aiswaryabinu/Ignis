@@ -7,9 +7,16 @@
   --color-primary: #2d87db;
   --color-primary-dark: #0f3a4a;
   --color-primary-soft: #e6f2ff;
+  --color-link: #0d78bd;
   --color-success: #16a34a;
   --color-warning: #f59e0b;
   --color-danger: #dc2626;
+  --color-info: #1d5fbf;
+  --color-info-bg: #e5efff;
+  --color-success-bg: #dff5e9;
+  --color-warning-bg: #fff0dc;
+  --color-neutral: #5b6b75;
+  --color-neutral-bg: #e9eef1;
   --color-border: #dfeaf2;
   --shadow-soft: 0 12px 28px rgba(15, 58, 74, 0.08);
 }

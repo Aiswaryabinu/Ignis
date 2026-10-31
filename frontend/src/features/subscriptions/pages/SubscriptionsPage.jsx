@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react';
+
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const subscriptions = [
   {
@@ -61,18 +64,26 @@ const pillClassMap = {
 };
 
 export function SubscriptionsPage() {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All statuses');
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const visibleSubscriptions = useMemo(() => subscriptions.filter((item) => (
+    `${item.number} ${item.customer} ${item.plan}`.toLowerCase().includes(query.toLowerCase())
+    && (status === 'All statuses' || item.status === status)
+  )), [query, status]);
+
   return (
     <AppShell
       title="Subscriptions"
       description="Every subscription and where it stands."
       breadcrumb="Brightloop / Subscriptions"
       activeNav="Subscriptions"
-      primaryAction={<button className="primary-action">+ New subscription</button>}
+      primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ New subscription</button>}
       secondaryAction={<button className="secondary-action">Export</button>}
     >
       <div className="table-toolbar">
-        <div className="search-box">Search subscriptions...</div>
-        <div className="filter-select">All statuses ⌄</div>
+        <input className="table-search" type="search" placeholder="Search subscriptions..." aria-label="Search subscriptions" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select className="table-filter" aria-label="Filter subscriptions by status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All statuses</option><option>Active</option><option>Confirmed</option><option>Quotation</option><option>Closed</option></select>
       </div>
 
       <div className="data-card">
@@ -90,7 +101,7 @@ export function SubscriptionsPage() {
             </tr>
           </thead>
           <tbody>
-            {subscriptions.map((item) => (
+            {visibleSubscriptions.map((item) => (
               <tr key={item.number}>
                 <td className="customer-name">{item.number}</td>
                 <td>{item.customer}</td>
@@ -110,8 +121,9 @@ export function SubscriptionsPage() {
           </tbody>
         </table>
 
-        <div className="table-footer">Showing 5 of 5 records</div>
+        <div className="table-footer">Showing {visibleSubscriptions.length} of {subscriptions.length} records</div>
       </div>
+      <Drawer title="New subscription" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer"><form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}><label>Customer<select defaultValue="Northwind Traders"><option>Northwind Traders</option><option>Kerala Foods Co.</option><option>Tidewater Logistics</option><option>Lumen Clinics</option></select></label><label>Plan<select defaultValue="Business Monthly"><option>Business Monthly</option><option>Scale Annual</option><option>Secure Weekly</option><option>Starter Monthly</option></select></label><label>Start date<input type="date" /></label><label>Payment terms<select defaultValue="Immediate"><option>Immediate</option><option>Net 15</option><option>Net 30</option></select></label><button className="primary-action drawer-submit" type="submit">Save</button></form></Drawer>
     </AppShell>
   );
 }

@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react';
+
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const products = [
   {
@@ -28,18 +31,26 @@ const products = [
 ];
 
 export function ProductsPage() {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All statuses');
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const visibleProducts = useMemo(() => products.filter((product) => (
+    `${product.name} ${product.type}`.toLowerCase().includes(query.toLowerCase())
+    && (status === 'All statuses' || product.status === status)
+  )), [query, status]);
+
   return (
     <AppShell
       title="Products"
       description="What you sell, with cost, price and variants."
       breadcrumb="Brightloop / Products"
       activeNav="products"
-      primaryAction={<button className="primary-action">+ Create</button>}
+      primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ Create</button>}
       secondaryAction={<button className="secondary-action">Export</button>}
     >
       <div className="table-toolbar">
-        <div className="search-box">Search products...</div>
-        <div className="filter-select">All statuses ⌄</div>
+        <input className="table-search" type="search" placeholder="Search products..." aria-label="Search products" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select className="table-filter" aria-label="Filter products by status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All statuses</option><option>Active</option></select>
       </div>
 
       <div className="data-card">
@@ -55,7 +66,7 @@ export function ProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {visibleProducts.map((product) => (
               <tr key={product.name}>
                 <td className="product-name">{product.name}</td>
                 <td>{product.type}</td>
@@ -73,8 +84,9 @@ export function ProductsPage() {
           </tbody>
         </table>
 
-        <div className="table-footer">Showing 3 of 3 records</div>
+        <div className="table-footer">Showing {visibleProducts.length} of {products.length} records</div>
       </div>
+      <Drawer title="Create" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer"><form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}><label>Name<input required /></label><label>Type<select defaultValue="Software"><option>Software</option><option>Add-on</option><option>Service</option></select></label><label>Sales price<input inputMode="decimal" /></label><label>Cost price<input inputMode="decimal" /></label><label>Variants<input /></label><button className="primary-action drawer-submit" type="submit">Save</button></form></Drawer>
     </AppShell>
   );
 }

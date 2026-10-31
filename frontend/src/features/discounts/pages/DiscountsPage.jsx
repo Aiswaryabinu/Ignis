@@ -13,6 +13,7 @@ export function DiscountsPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('All statuses');
   const [isCreateOpen, setCreateOpen] = useState(false);
+  const [selectedDiscount, setSelectedDiscount] = useState(null);
   const filteredDiscounts = useMemo(() => discounts.filter((discount) => (
     discount.code.toLowerCase().includes(query.toLowerCase())
     && (status === 'All statuses' || discount.status === status)
@@ -29,13 +30,30 @@ export function DiscountsPage() {
       <div className="data-card discount-card">
         <table className="data-table discount-table">
           <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Minimum</th><th>Valid</th><th>Used</th><th>Applies to</th><th>Status</th></tr></thead>
-          <tbody>{filteredDiscounts.map((discount) => <tr key={discount.code}>
-            <td className="table-link">{discount.code}</td><td>{discount.type}</td><td>{discount.value}</td><td>{discount.minimum}</td><td>{discount.valid}</td><td>{discount.used}</td><td>{discount.appliesTo}</td>
+          <tbody>{filteredDiscounts.map((discount) => <tr key={discount.code} className="clickable-row" tabIndex="0" onClick={() => setSelectedDiscount(discount)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedDiscount(discount); }}>
+            <td><button className="table-link" type="button" onClick={() => setSelectedDiscount(discount)}>{discount.code}</button></td><td>{discount.type}</td><td>{discount.value}</td><td>{discount.minimum}</td><td>{discount.valid}</td><td>{discount.used}</td><td>{discount.appliesTo}</td>
             <td><span className={`status-pill ${discount.status === 'Active' ? 'success' : discount.status === 'Draft' ? 'warning' : 'muted'}`}><span className="dot" />{discount.status}</span></td>
           </tr>)}</tbody>
         </table>
         <div className="table-footer">Showing {filteredDiscounts.length} of {discounts.length} records</div>
       </div>
+      <Drawer title={selectedDiscount?.code || 'Discount'} isOpen={Boolean(selectedDiscount)} onClose={() => setSelectedDiscount(null)} className="discount-detail-drawer">
+        {selectedDiscount && (
+          <>
+            <span className={`status-pill ${selectedDiscount.status === 'Active' ? 'success' : selectedDiscount.status === 'Draft' ? 'warning' : 'muted'}`}><span className="dot" />{selectedDiscount.status}</span>
+            <dl className="discount-detail-list">
+              <div><dt>Code</dt><dd>{selectedDiscount.code}</dd></div>
+              <div><dt>Type</dt><dd>{selectedDiscount.type}</dd></div>
+              <div><dt>Value</dt><dd>{selectedDiscount.value}</dd></div>
+              <div><dt>Minimum</dt><dd>{selectedDiscount.minimum}</dd></div>
+              <div><dt>Valid</dt><dd>{selectedDiscount.valid}</dd></div>
+              <div><dt>Used</dt><dd>{selectedDiscount.used}</dd></div>
+              <div><dt>Applies to</dt><dd>{selectedDiscount.appliesTo}</dd></div>
+              <div><dt>Status</dt><dd>{selectedDiscount.status}</dd></div>
+            </dl>
+          </>
+        )}
+      </Drawer>
       <Drawer title="Create discount" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer">
         <form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}>
           <label>Code<input required /></label>

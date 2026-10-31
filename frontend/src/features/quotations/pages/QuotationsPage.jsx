@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react';
+
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const quotations = [
   {
@@ -25,18 +28,26 @@ const quotations = [
 ];
 
 export function QuotationsPage() {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All statuses');
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const visibleQuotations = useMemo(() => quotations.filter((quote) => (
+    `${quote.template} ${quote.plan}`.toLowerCase().includes(query.toLowerCase())
+    && (status === 'All statuses' || quote.status === status)
+  )), [query, status]);
+
   return (
     <AppShell
       title="Quotations"
       description="Start offers from a template with plan and product lines ready."
       breadcrumb="Brightloop / Quotations"
       activeNav="Quotations"
-      primaryAction={<button className="primary-action">+ New template</button>}
+      primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ New template</button>}
       secondaryAction={<button className="secondary-action">Export</button>}
     >
       <div className="table-toolbar">
-        <div className="search-box">Search quotations...</div>
-        <div className="filter-select">All statuses ⌄</div>
+        <input className="table-search" type="search" placeholder="Search quotations..." aria-label="Search quotations" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select className="table-filter" aria-label="Filter quotations by status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All statuses</option><option>Active</option><option>Draft</option></select>
       </div>
 
       <div className="data-card">
@@ -51,7 +62,7 @@ export function QuotationsPage() {
             </tr>
           </thead>
           <tbody>
-            {quotations.map((quote) => (
+            {visibleQuotations.map((quote) => (
               <tr key={quote.template}>
                 <td className="customer-name">{quote.template}</td>
                 <td>{quote.plan}</td>
@@ -68,8 +79,9 @@ export function QuotationsPage() {
           </tbody>
         </table>
 
-        <div className="table-footer">Showing 3 of 3 records</div>
+        <div className="table-footer">Showing {visibleQuotations.length} of {quotations.length} records</div>
       </div>
+      <Drawer title="New template" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer"><form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}><label>Template name<input required /></label><label>Plan<select defaultValue="Business Monthly"><option>Business Monthly</option><option>Scale Annual</option><option>Secure Weekly</option><option>Starter Monthly</option></select></label><label>Lines<input /></label><label>Valid for<input /></label><button className="primary-action drawer-submit" type="submit">Save</button></form></Drawer>
     </AppShell>
   );
 }

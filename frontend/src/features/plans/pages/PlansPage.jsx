@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react';
+
 import { AppShell } from '../../../components/layout/AppShell.jsx';
+import { Drawer } from '../../../components/ui/Drawer.jsx';
 
 const plans = [
   {
@@ -45,18 +48,26 @@ const pillClassMap = {
 };
 
 export function PlansPage() {
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('All statuses');
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const visiblePlans = useMemo(() => plans.filter((item) => (
+    `${item.plan} ${item.product}`.toLowerCase().includes(query.toLowerCase())
+    && (status === 'All statuses' || item.status === status)
+  )), [query, status]);
+
   return (
     <AppShell
       title="Subscription Plans"
       description="Configure pricing, billing frequencies, and plan rules."
       breadcrumb="Brightloop / Subscription Plans"
       activeNav="Subscription Plans"
-      primaryAction={<button className="primary-action">+ Create plan</button>}
+      primaryAction={<button className="primary-action" type="button" onClick={() => setCreateOpen(true)}>+ Create plan</button>}
       secondaryAction={<button className="secondary-action">Export</button>}
     >
       <div className="table-toolbar">
-        <div className="search-box">Search subscription plans...</div>
-        <div className="filter-select">All statuses ⌄</div>
+        <input className="table-search" type="search" placeholder="Search subscription plans..." aria-label="Search subscription plans" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select className="table-filter" aria-label="Filter subscription plans by status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All statuses</option><option>Active</option><option>Draft</option></select>
       </div>
 
       <div className="data-card">
@@ -73,7 +84,7 @@ export function PlansPage() {
             </tr>
           </thead>
           <tbody>
-            {plans.map((item) => (
+            {visiblePlans.map((item) => (
               <tr key={item.plan}>
                 <td className="customer-name">{item.plan}</td>
                 <td>{item.product}</td>
@@ -92,8 +103,9 @@ export function PlansPage() {
           </tbody>
         </table>
 
-        <div className="table-footer">Showing 4 of 4 records</div>
+        <div className="table-footer">Showing {visiblePlans.length} of {plans.length} records</div>
       </div>
+      <Drawer title="Create plan" isOpen={isCreateOpen} onClose={() => setCreateOpen(false)} className="form-drawer"><form className="drawer-form" onSubmit={(event) => { event.preventDefault(); setCreateOpen(false); }}><label>Plan name<input required /></label><label>Product<select defaultValue="CloudDesk Pro"><option>CloudDesk Pro</option><option>Analytics Suite</option><option>SecureVault</option></select></label><label>Billing<select defaultValue="Daily"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></label><label>Base price<input inputMode="decimal" /></label><label>Min. quantity<input inputMode="numeric" /></label><label>Renewal<select defaultValue="Automatic"><option>Automatic</option><option>Manual</option></select></label><button className="primary-action drawer-submit" type="submit">Save</button></form></Drawer>
     </AppShell>
   );
 }
