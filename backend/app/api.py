@@ -341,6 +341,7 @@ def subscription_transition(subscription_id: UUID, action: str, body: Transition
 def invoice_data(invoice: m.Invoice):
     return {"id": str(invoice.id), "invoice_number": invoice.invoice_number,
             "invoiceNumber": invoice.invoice_number,
+            "customer_id": str(invoice.customer_id),
             "customer": invoice.customer.company_name if invoice.customer else "—",
             "subscription": invoice.subscription.subscription_number if invoice.subscription else "—",
             "issue_date": invoice.issue_date, "date": invoice.issue_date.isoformat(),
